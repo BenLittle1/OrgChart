@@ -178,7 +178,7 @@ export default function GraphVisualization({
         displayLines[2] = displayLines[2].substring(0, maxCharsPerLine - 3) + '...';
       }
       
-      // Create text elements for each line
+      // Create text elements for each line - ensure black and visible text
       displayLines.forEach((line, i) => {
         nodeGroup.append('text')
           .text(line)
@@ -186,12 +186,13 @@ export default function GraphVisualization({
           .attr('font-weight', d.level <= 1 ? 'bold' : 'normal')
           .attr('text-anchor', 'middle')
           .attr('dy', radius + 18 + (i * fontSize * 1.1)) // Line spacing
-          .attr('fill', '#1f2937')
-          .attr('stroke', '#ffffff')
-          .attr('stroke-width', '0.5')
-          .attr('stroke-opacity', '0.8')
+          .attr('fill', '#000000') // Pure black text
+          .attr('stroke', '#ffffff') // White outline for contrast
+          .attr('stroke-width', '1') // Slightly thicker outline
+          .attr('stroke-opacity', '1') // Full opacity outline
           .attr('pointer-events', 'none')
-          .style('text-shadow', '1px 1px 2px rgba(255,255,255,0.8)');
+          .style('paint-order', 'stroke fill') // Ensure stroke renders behind fill
+          .style('text-shadow', '2px 2px 4px rgba(255,255,255,0.9), -1px -1px 2px rgba(255,255,255,0.9)'); // Enhanced shadow
       });
     });
 
