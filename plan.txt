@@ -19,65 +19,66 @@ Create an intuitive, visual tool that allows founders, executives, and investors
 
 ## 3. Technical Architecture (Deployment-First Design)
 
-### 3.1 Technology Stack (Stable, LTS Versions)
-**CRITICAL: Always use stable, production-ready versions for reliable deployment**
+### 3.1 Technology Stack (Production-Ready Versions)
 
 - **Runtime**: Node.js 18 LTS (Alpine for Docker)
-- **Framework**: Next.js 14.2.31 (NOT 15+ due to resource constraints)
-- **React**: 18.2.0 (NOT 19+ due to deployment instability)
-- **TypeScript**: 5.x (latest stable)
-- **Styling**: Tailwind CSS 3.4.16 (NOT v4 due to breaking changes)
-- **PostCSS**: 8.4.49 with autoprefixer
-- **Visualization**: D3.js 7.9.0
-- **Utilities**: clsx, tailwind-merge
+- **Framework**: Next.js 14.x (App Router for modern React patterns)
+- **React**: 18.x (Stable with excellent ecosystem support)
+- **TypeScript**: 5.x (Latest stable with enhanced type safety)
+- **Styling**: Tailwind CSS 3.x (Mature utility-first CSS framework)
+- **PostCSS**: 8.x with autoprefixer for cross-browser compatibility
+- **Visualization**: D3.js 7.x (Industry standard for data visualization)
+- **Utilities**: clsx, tailwind-merge for conditional styling
 
-### 3.2 Import Strategy (Deployment-Compatible)
-**CRITICAL: Use relative imports, NOT TypeScript path mapping (@/)**
+### 3.2 Import Strategy (Module Resolution)
+
+**Use relative imports for reliable module resolution across all environments:**
 
 ```typescript
-// ✅ Correct (works in all environments)
+// Standard relative import pattern
 import { DataContext } from '../../context/DataContext';
 import { formatPercentage } from '../../lib/utils';
-
-// ❌ Incorrect (fails in Docker builds)
-import { DataContext } from '@/context/DataContext';
-import { formatPercentage } from '@/lib/utils';
+import ChecklistTree from '../checklist/ChecklistTree';
 ```
 
-**Rationale**: TypeScript path mapping (@/) fails in containerized builds due to resolution conflicts. Relative imports work consistently across development, build, and deployment environments.
+**Benefits**:
+- Explicit dependency relationships
+- No build-time configuration dependencies  
+- Consistent resolution across development and production
+- Better IDE support and refactoring capabilities
 
-### 3.3 Project Structure (Container-Optimized)
+### 3.3 Project Structure (Scalable Architecture)
 ```
 src/
-├── app/                    # Next.js 14 App Router
-│   ├── globals.css        # Tailwind v3 imports (@tailwind directives)
+├── app/                    # Next.js App Router pages
+│   ├── globals.css        # Global styles and Tailwind imports
 │   ├── layout.tsx         # Root layout with providers
 │   ├── page.tsx           # Home/overview page
-│   ├── checklist/page.tsx # Task management view
-│   ├── dashboard/page.tsx # Progress metrics view
-│   └── graph/page.tsx     # D3.js visualization view
-├── components/            # Reusable UI components
-│   ├── checklist/         # Task tree components
-│   ├── dashboard/         # Progress display components
+│   ├── checklist/page.tsx # Task management interface
+│   ├── dashboard/page.tsx # Progress metrics and analytics
+│   └── graph/page.tsx     # Interactive D3.js visualization
+├── components/            # Reusable React components
+│   ├── checklist/         # Task tree and completion logic
+│   ├── dashboard/         # Progress displays and metrics
 │   ├── graph/             # D3.js visualization components
-│   ├── layout/            # Navigation and panels
-│   └── ui/                # Base UI components + ErrorBoundary
-├── context/               # React Context for state management
-├── lib/                   # Utilities and data processing
+│   ├── layout/            # Navigation and UI panels
+│   └── ui/                # Base UI components and error boundaries
+├── context/               # React Context providers
+├── lib/                   # Business logic and utilities
 ├── types/                 # TypeScript type definitions
-└── data/                  # Static data and configuration
+└── data/                  # Static configuration and seed data
 ```
 
-### 3.4 Configuration Files (Production-Ready)
+### 3.4 Configuration Files (Production Standards)
 ```
-next.config.js             # Use .js (NOT .ts) for Next.js 14 compatibility
-tsconfig.json              # TypeScript config with relative path base
-tailwind.config.js         # Tailwind v3 configuration
-postcss.config.mjs         # PostCSS with autoprefixer
-package.json               # Stable dependency versions
-Dockerfile                 # Single-stage build for reliability
-.dockerignore              # Optimized build context
-railway.json               # Docker deployment configuration
+next.config.js             # Next.js configuration (JavaScript format)
+tsconfig.json              # TypeScript compiler configuration
+tailwind.config.js         # Tailwind CSS utility configuration
+postcss.config.mjs         # PostCSS processing with autoprefixer
+package.json               # Dependency management and scripts
+Dockerfile                 # Container build definition
+.dockerignore              # Build context optimization
+railway.json               # Deployment platform configuration
 ```
 
 ## 4. Data Architecture & State Management
@@ -157,14 +158,14 @@ const GraphVisualization = () => {
 
 ## 6. Deployment Architecture (Production-Ready)
 
-### 6.1 Docker Strategy (Resource-Optimized)
+### 6.1 Docker Strategy (Production Container)
 ```dockerfile
-# Single-stage build for reliability
+# Production-ready Node.js container
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Environment optimization
+# Environment configuration
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -172,22 +173,26 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Install system dependencies
 RUN apk add --no-cache libc6-compat
 
-# Copy all files (maintains structure)
+# Copy application files
+COPY package*.json ./
 COPY . .
 
-# Install dependencies
-RUN npm ci --ignore-scripts --no-fund --no-audit
-
-# Build application
+# Install dependencies and build
+RUN npm ci --omit=dev --ignore-scripts
 RUN npm run build
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+# Set ownership and switch to non-root user
+COPY --chown=nextjs:nodejs . .
 USER nextjs
 
+# Expose application port
 EXPOSE 3000
+
+# Start application
 CMD ["npm", "start"]
 ```
 
@@ -287,59 +292,69 @@ CMD ["npm", "start"]
 - ✅ Optimize build process and resource usage
 - ✅ Add comprehensive error handling and monitoring
 
-## 9. Critical Success Factors (Lessons Learned)
+## 9. Development and Deployment Principles
 
-### 9.1 Dependency Management
-- **Use stable LTS versions** (React 18, Next.js 14, Node 18)
-- **Avoid bleeding-edge releases** until thoroughly tested
-- **Pin exact versions** in package.json for reproducible builds
-- **Regular security updates** while maintaining stability
+### 9.1 Technology Selection Criteria
+- Choose mature, well-supported technologies with active communities
+- Prioritize long-term support (LTS) versions for production stability
+- Evaluate dependencies for security, performance, and maintenance burden
+- Prefer established patterns over experimental approaches
 
-### 9.2 Import Strategy
-- **Prefer relative imports** over TypeScript path mapping
-- **Test imports in Docker environment** during development
-- **Avoid complex module resolution** that fails in containers
-- **Use consistent import patterns** across the codebase
+### 9.2 Code Organization Standards
+- Implement consistent module organization across the application
+- Use explicit imports to maintain clear dependency relationships
+- Structure components for reusability and testability
+- Separate business logic from presentation concerns
 
-### 9.3 Resource Management
-- **Design for container constraints** (1GB memory limit)
-- **Use NODE_OPTIONS** for heap size optimization
-- **Implement progressive loading** for large datasets
-- **Monitor build performance** and optimize accordingly
+### 9.3 Performance and Scalability Design
+- Design for horizontal scaling from the start
+- Implement efficient algorithms for data processing
+- Use appropriate caching strategies at multiple layers
+- Monitor and optimize critical performance metrics
 
-### 9.4 Error Handling
-- **Wrap components in ErrorBoundary** to prevent cascading failures
-- **Provide meaningful fallback UIs** for failed components
-- **Log errors appropriately** for debugging and monitoring
-- **Test error scenarios** during development
+### 9.4 Quality and Reliability Practices
+- Implement comprehensive error boundaries and fallback mechanisms
+- Use TypeScript for compile-time error detection
+- Write tests for critical business logic and user workflows
+- Implement proper logging and monitoring capabilities
 
-### 9.5 Build & Deployment
-- **Use single-stage Docker builds** for simplicity and reliability
-- **Test Docker builds locally** before deployment
-- **Optimize build context** with comprehensive .dockerignore
-- **Monitor deployment metrics** and resource usage
+### 9.5 Production Deployment Standards
+- Use containerization for consistent deployment environments
+- Implement proper security practices (non-root users, minimal attack surface)
+- Design for observability with health checks and metrics
+- Plan for rollback and disaster recovery scenarios
 
-## 10. Troubleshooting Guide (Common Issues & Solutions)
+## 10. Architectural Best Practices
 
-### 10.1 Module Resolution Errors
-**Problem**: "Can't resolve '@/context/DataContext'"
-**Solution**: Replace @ imports with relative imports (../../path)
+### 10.1 Module Organization
+- Use relative imports for explicit dependency management
+- Group related components in feature-based directories
+- Maintain clear separation between business logic and UI components
+- Keep utility functions pure and well-tested
 
-### 10.2 Build Memory Issues
-**Problem**: Exit code 240, build out of memory
-**Solution**: Reduce NODE_OPTIONS heap size, use stable dependencies
+### 10.2 Performance Optimization
+- Implement proper React.memo() usage for expensive renders
+- Use efficient data structures for tree operations
+- Cache computed values where appropriate
+- Optimize D3.js rendering with requestAnimationFrame
 
-### 10.3 Docker Build Failures
-**Problem**: Build context too large, file not found errors
-**Solution**: Update .dockerignore, use COPY . . for complete structure
+### 10.3 Error Handling Strategy
+- Implement ErrorBoundary components at appropriate levels
+- Provide meaningful fallback UIs for failed components
+- Use defensive programming for external dependencies
+- Log errors appropriately without exposing sensitive data
 
-### 10.4 Hydration Mismatches
-**Problem**: Server/client rendering differences
-**Solution**: Use isLoaded state pattern for client-only features
+### 10.4 State Management Patterns
+- Use React Context for global application state
+- Implement proper loading states for async operations
+- Handle hydration safely with client-only patterns
+- Maintain immutable data update patterns
 
-### 10.5 D3.js Container Issues
-**Problem**: Zero-width containers causing crashes
-**Solution**: Implement fallback dimensions (800x600) in components
+### 10.5 Container and Deployment Considerations
+- Design components with responsive dimensions
+- Use environment variables for configuration
+- Implement proper health checks and graceful shutdown
+- Optimize build processes for target environments
 
 ## 11. Future Enhancements (V2+ Roadmap)
 
