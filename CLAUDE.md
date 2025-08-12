@@ -92,12 +92,18 @@ Located in `src/lib/utils.ts`:
 - Zoom behavior stored in ref to enable programmatic control
 - Force simulation configured for hierarchical data visualization
 - TypeScript types extend D3's simulation interfaces
+- **Error handling**: Fallback dimensions (800x600) prevent crashes when container has zero size
 
 ### Progress Synchronization  
 - All views share the same DataContext state
 - Changes in one view instantly reflect in others
 - Color schemes and progress bars update in real-time
-- localStorage automatically persists changes
+- **localStorage integration**: Hydration-safe loading with `isLoaded` state to prevent mismatches
+
+### Error Handling & Stability
+- **ErrorBoundary component** (`src/components/ui/ErrorBoundary.tsx`) wraps critical components
+- **Graceful degradation**: Components handle missing data and edge cases
+- **Build process**: Clean configuration without conflicting lockfiles or problematic postinstall scripts
 
 ### Railway Deployment
 - Configured with `railway.json` for optimal deployment
@@ -139,3 +145,25 @@ The organizational data is stored in `src/lib/data.ts` as a comprehensive hierar
 - Node sizing logic uses weight calculations
 - Force simulation parameters in `GraphVisualization.tsx`
 - Interactive behaviors (zoom, drag, hover) configured in D3 event handlers
+
+## Troubleshooting Common Issues
+
+### Development Server Issues
+- **Clean build cache**: `rm -rf .next node_modules/.cache` before restart
+- **Lockfile conflicts**: Remove conflicting `bun.lock` files from parent directories
+- **Port conflicts**: Server automatically uses available ports (3000, 3001, etc.)
+
+### Graph Visualization Problems
+- **Empty container**: GraphVisualization includes fallback dimensions (800x600)
+- **D3 errors**: ErrorBoundary component catches and displays errors gracefully
+- **Performance**: Large datasets handled by D3 force simulation optimization
+
+### localStorage Hydration
+- DataContext uses `isLoaded` state to prevent hydration mismatches
+- Initial data loads from localStorage after component mount
+- Data persistence occurs only after initial hydration completes
+
+### Build and Deployment
+- TypeScript strict mode enabled - all type errors must be resolved
+- Railway deployment uses standalone output for optimal performance
+- Health checks configured on root endpoint with 300s timeout
