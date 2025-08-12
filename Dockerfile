@@ -18,7 +18,18 @@ RUN apk add --no-cache libc6-compat
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies with optimizations
+# Install all dependencies (including dev) for build stage
+RUN npm ci --ignore-scripts --no-fund --no-audit && \
+    npm cache clean --force
+
+# Production dependencies stage
+FROM base AS prod-deps
+RUN apk add --no-cache libc6-compat
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install only production dependencies
 RUN npm ci --omit=dev --ignore-scripts --no-fund --no-audit && \
     npm cache clean --force
 
@@ -29,8 +40,20 @@ WORKDIR /app
 # Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
+# Copy package.json files
+COPY package.json package-lock.json* ./
+
+# Copy configuration files
+COPY next.config.js ./
+COPY tsconfig.json ./
+COPY next-env.d.ts ./
+COPY tailwind.config.js ./
+COPY postcss.config.mjs ./
+COPY eslint.config.mjs ./
+
 # Copy source code
-COPY . .
+COPY src ./src
+COPY public ./public
 
 # Build the application
 RUN npm run build
@@ -42,6 +65,9 @@ WORKDIR /app
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
+
+# Copy production dependencies
+COPY --from=prod-deps /app/node_modules ./node_modules
 
 # Copy built application
 COPY --from=builder /app/public ./public
