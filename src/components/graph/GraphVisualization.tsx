@@ -86,6 +86,17 @@ export default function GraphVisualization({
 
     // Create main group for zoom/pan
     const g = svg.append('g');
+    
+    // Set initial zoom to be more zoomed out while keeping center
+    const initialScale = 0.25;
+    const centerX = w / 2;
+    const centerY = h / 2;
+    const initialTransform = d3.zoomIdentity
+      .translate(centerX, centerY)
+      .scale(initialScale)
+      .translate(-centerX, -centerY);
+    
+    svg.call(zoom.transform, initialTransform);
 
     // Create force simulation
     const simulation = d3.forceSimulation<D3Node>(nodes)
