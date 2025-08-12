@@ -1,262 +1,393 @@
-1. Project Vision & Core Goal
-To create an intuitive, visual tool that allows founders, executives, and investors to instantly assess a company's operational maturity. The app will translate a complex checklist of business processes into an interactive "living" organizational chart, providing an at-a-glance understanding of progress and highlighting areas that require attention.
+# OrgGraph - Organizational Maturity Assessment Tool
+## Comprehensive Implementation Plan (Updated with Deployment Best Practices)
 
-2. Core User Experience & Flow
-The user journey will be simple and focused on two complementary views:
+## 1. Project Vision & Core Goal
+Create an intuitive, visual tool that allows founders, executives, and investors to instantly assess a company's operational maturity. The app translates a complex checklist of business processes into an interactive "living" organizational chart, providing at-a-glance understanding of progress and highlighting areas requiring attention.
 
-"How are we doing?" (The Graph): The user opens the app and is immediately presented with the Graph View. They can see the entire company structure as a node graph. The colors give them an instant qualitative feel for progress (e.g., "Finance looks very red, we need to work on that"). They can zoom, pan, and explore the different branches of the business.
+## 2. Core User Experience & Flow
 
-"Let's get it done." (The Checklist): The user navigates to the Checklist View. Here, they see a familiar, collapsible list of every process. They find the specific task they just completed (e.g., "1.1.2. Name Registration"), and check the box.
+### Primary Workflows:
+1. **"How are we doing?" (Graph View)**: Instant visual assessment with color-coded progress indicators
+2. **"Let's get it done" (Checklist View)**: Task management with cascading completion logic
+3. **"See the impact" (Real-time Feedback)**: Immediate visual updates across all views
 
-"See the impact." (Instant Feedback): Upon checking the box, the user navigates back to the Graph View. They immediately see the "Name Registration" node has turned from red to green. They also notice its parent node, "Business Formation," has shifted its color slightly more towards green, reflecting the progress. The percentages in the Summary Dashboard have also updated in real-time.
+### User Journey:
+- User opens app → Graph View shows overall company maturity
+- User navigates to Checklist → Completes specific tasks
+- System provides instant feedback → Visual updates reflect progress
+- Dashboard shows quantitative metrics and progress trends
 
-3. Data Architecture & Management
-The entire application will be driven by a single, hierarchical data object. This ensures consistency and simplifies state management.
+## 3. Technical Architecture (Deployment-First Design)
 
-Structure: A JSON object will represent the hierarchy. Each node in the object will have the following properties:
+### 3.1 Technology Stack (Stable, LTS Versions)
+**CRITICAL: Always use stable, production-ready versions for reliable deployment**
 
-id: A unique string (e.g., "2.1.3").
+- **Runtime**: Node.js 18 LTS (Alpine for Docker)
+- **Framework**: Next.js 14.2.31 (NOT 15+ due to resource constraints)
+- **React**: 18.2.0 (NOT 19+ due to deployment instability)
+- **TypeScript**: 5.x (latest stable)
+- **Styling**: Tailwind CSS 3.4.16 (NOT v4 due to breaking changes)
+- **PostCSS**: 8.4.49 with autoprefixer
+- **Visualization**: D3.js 7.9.0
+- **Utilities**: clsx, tailwind-merge
 
-name: The display name (e.g., "Implement Accounting Software").
+### 3.2 Import Strategy (Deployment-Compatible)
+**CRITICAL: Use relative imports, NOT TypeScript path mapping (@/)**
 
-isComplete: A boolean (true/false), defaulting to false. This is the primary state changed by the user.
+```typescript
+// ✅ Correct (works in all environments)
+import { DataContext } from '../../context/DataContext';
+import { formatPercentage } from '../../lib/utils';
 
-children: An array of child node objects. If the array is empty, it's a "leaf" node (a specific task).
+// ❌ Incorrect (fails in Docker builds)
+import { DataContext } from '@/context/DataContext';
+import { formatPercentage } from '@/lib/utils';
+```
 
-Example Data Object: The application will be initialized with a comprehensive structure like the one below.
+**Rationale**: TypeScript path mapping (@/) fails in containerized builds due to resolution conflicts. Relative imports work consistently across development, build, and deployment environments.
 
+### 3.3 Project Structure (Container-Optimized)
+```
+src/
+├── app/                    # Next.js 14 App Router
+│   ├── globals.css        # Tailwind v3 imports (@tailwind directives)
+│   ├── layout.tsx         # Root layout with providers
+│   ├── page.tsx           # Home/overview page
+│   ├── checklist/page.tsx # Task management view
+│   ├── dashboard/page.tsx # Progress metrics view
+│   └── graph/page.tsx     # D3.js visualization view
+├── components/            # Reusable UI components
+│   ├── checklist/         # Task tree components
+│   ├── dashboard/         # Progress display components
+│   ├── graph/             # D3.js visualization components
+│   ├── layout/            # Navigation and panels
+│   └── ui/                # Base UI components + ErrorBoundary
+├── context/               # React Context for state management
+├── lib/                   # Utilities and data processing
+├── types/                 # TypeScript type definitions
+└── data/                  # Static data and configuration
+```
+
+### 3.4 Configuration Files (Production-Ready)
+```
+next.config.js             # Use .js (NOT .ts) for Next.js 14 compatibility
+tsconfig.json              # TypeScript config with relative path base
+tailwind.config.js         # Tailwind v3 configuration
+postcss.config.mjs         # PostCSS with autoprefixer
+package.json               # Stable dependency versions
+Dockerfile                 # Single-stage build for reliability
+.dockerignore              # Optimized build context
+railway.json               # Docker deployment configuration
+```
+
+## 4. Data Architecture & State Management
+
+### 4.1 Core Data Structure
+**Single hierarchical data object ensures consistency across all views**
+
+```typescript
+interface OrgNode {
+  id: string;           // Unique identifier (e.g., "2.1.3")
+  name: string;         // Display name
+  isComplete: boolean;  // Completion status
+  children: OrgNode[];  // Child nodes (empty for leaf tasks)
+}
+```
+
+### 4.2 State Management Strategy
+- **React Context** for global state (no external dependencies)
+- **localStorage** persistence with hydration-safe loading
+- **Immutable updates** using deep cloning
+- **Cascading logic** for parent-child completion relationships
+
+### 4.3 Business Logic (Core Algorithms)
+```typescript
+// Progress calculation: completed leaf nodes / total leaf nodes
+const calculateProgress = (node: OrgNode): number => {
+  const leafNodes = getLeafNodes(node);
+  const completedLeaves = leafNodes.filter(n => n.isComplete);
+  return completedLeaves.length / leafNodes.length;
+};
+
+// Node weight: 1 + sum of children weights (for visual sizing)
+const calculateWeight = (node: OrgNode): number => {
+  return 1 + node.children.reduce((sum, child) => sum + calculateWeight(child), 0);
+};
+
+// Color mapping: Red (0%) → Yellow (50%) → Green (100%)
+const getCompletionColor = (percentage: number): string => {
+  if (percentage === 0) return '#ef4444';      // red-500
+  if (percentage === 1) return '#10b981';      // green-500
+  return `hsl(${percentage * 120}, 70%, 50%)`; // red to green gradient
+};
+```
+
+## 5. Component Architecture (Error-Resilient Design)
+
+### 5.1 Error Boundaries (Defensive Programming)
+**CRITICAL: Wrap all major components with error boundaries**
+
+```typescript
+// ErrorBoundary component prevents app crashes
+<ErrorBoundary fallback={<ErrorFallback />}>
+  <GraphVisualization />
+</ErrorBoundary>
+```
+
+### 5.2 D3.js Integration (Container-Safe)
+```typescript
+// Fallback dimensions prevent crashes in container environments
+const GraphVisualization = () => {
+  const width = containerRect?.width || 800;   // Fallback width
+  const height = containerRect?.height || 600; // Fallback height
+  
+  // Force simulation with memory-conscious parameters
+  const simulation = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).distance(80))
+    .force("charge", d3.forceManyBody().strength(-200))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .alphaDecay(0.02); // Faster settling for resource efficiency
+};
+```
+
+### 5.3 Progressive Enhancement
+- **Core functionality first**: Basic checklist and data persistence
+- **Enhanced features second**: D3.js visualization, animations
+- **Graceful degradation**: App works even if D3.js fails to load
+
+## 6. Deployment Architecture (Production-Ready)
+
+### 6.1 Docker Strategy (Resource-Optimized)
+```dockerfile
+# Single-stage build for reliability
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Environment optimization
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Install system dependencies
+RUN apk add --no-cache libc6-compat
+
+# Copy all files (maintains structure)
+COPY . .
+
+# Install dependencies
+RUN npm ci --ignore-scripts --no-fund --no-audit
+
+# Build application
+RUN npm run build
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+USER nextjs
+
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+### 6.2 Railway Configuration
+```json
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
+  "deploy": {
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE"
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production",
+        "NEXT_PUBLIC_APP_URL": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+        "NEXT_TELEMETRY_DISABLED": "1"
+      }
+    }
+  }
+}
+```
+
+### 6.3 Build Optimization
+- **Memory management**: NODE_OPTIONS with appropriate heap size
+- **Dependency separation**: devDependencies vs runtime dependencies
+- **Build caching**: Docker layer optimization
+- **Asset optimization**: Next.js standalone output mode
+
+## 7. Data Structure (7 Main Categories, 50+ Tasks)
+
+### Organizational Hierarchy:
+1. **Corporate & Governance** (Business formation, legal compliance, investor management)
+2. **Finance & Accounting** (Financial setup, accounting processes, financial management)
+3. **Human Resources** (Recruitment, onboarding, employee management)
+4. **Sales & Marketing** (Strategy, online presence, lead generation)
+5. **Operations & Product** (Development, supply chain, customer support)
+6. **Technology & IP** (Infrastructure, intellectual property)
+7. **Risk & Insurance** (Insurance management, litigation)
+
+### Sample Data Structure:
+```json
 {
   "id": "root",
   "name": "My Company",
   "isComplete": false,
   "children": [
     {
-      "id": "1", "name": "Corporate & Governance", "isComplete": false,
+      "id": "1",
+      "name": "Corporate & Governance",
+      "isComplete": false,
       "children": [
-        { "id": "1.1", "name": "Business Formation", "isComplete": false, "children": [
-          { "id": "1.1.1", "name": "Business Plan Creation", "isComplete": false, "children": [] },
-          { "id": "1.1.2", "name": "Name Registration", "isComplete": false, "children": [] },
-          { "id": "1.1.3", "name": "Legal Structure (LLC, Corp)", "isComplete": false, "children": [] },
-          { "id": "1.1.4", "name": "Federal & State Registration", "isComplete": false, "children": [] },
-          { "id": "1.1.5", "name": "Obtain Business Licenses & Permits", "isComplete": false, "children": [] }
-        ]},
-        { "id": "1.2", "name": "Legal & Compliance", "isComplete": false, "children": [
-          { "id": "1.2.1", "name": "Draft Founder/Shareholder Agreements", "isComplete": false, "children": [] },
-          { "id": "1.2.2", "name": "Establish Corporate Bylaws & Minute Books", "isComplete": false, "children": [] },
-          { "id": "1.2.3", "name": "Data Privacy Compliance (GDPR, CCPA)", "isComplete": false, "children": [] },
-          { "id": "1.2.4", "name": "Terms of Service & Privacy Policy", "isComplete": false, "children": [] },
-          { "id": "1.2.5", "name": "Identify Third-Party Consents/Approvals", "isComplete": false, "children": [] }
-        ]},
-        { "id": "1.3", "name": "Investor & Shareholder Management", "isComplete": false, "children": [
-          { "id": "1.3.1", "name": "Maintain Capitalization Table", "isComplete": false, "children": [] },
-          { "id": "1.3.2", "name": "Pitch Deck Creation", "isComplete": false, "children": [] },
-          { "id": "1.3.3", "name": "Fundraising Rounds", "isComplete": false, "children": [] },
-          { "id": "1.3.4", "name": "Investor Reporting", "isComplete": false, "children": [] },
-          { "id": "1.3.5", "name": "Manage Stock Option/Equity Plans", "isComplete": false, "children": [] }
-        ]}
-      ]
-    },
-    {
-      "id": "2", "name": "Finance & Accounting", "isComplete": false,
-      "children": [
-        { "id": "2.1", "name": "Financial Setup", "isComplete": false, "children": [
-          { "id": "2.1.1", "name": "Open Business Bank Account", "isComplete": false, "children": [] },
-          { "id": "2.1.2", "name": "Setup Chart of Accounts", "isComplete": false, "children": [] },
-          { "id": "2.1.3", "name": "Implement Accounting Software", "isComplete": false, "children": [] }
-        ]},
-        { "id": "2.2", "name": "Core Accounting", "isComplete": false, "children": [
-          { "id": "2.2.1", "name": "Accounts Payable Process", "isComplete": false, "children": [] },
-          { "id": "2.2.2", "name": "Accounts Receivable Process", "isComplete": false, "children": [] },
-          { "id": "2.2.3", "name": "Payroll Processing", "isComplete": false, "children": [] },
-          { "id": "2.2.4", "name": "Bank Reconciliation", "isComplete": false, "children": [] }
-        ]},
-        { "id": "2.3", "name": "Financial Management", "isComplete": false, "children": [
-          { "id": "2.3.1", "name": "Budgeting & Forecasting", "isComplete": false, "children": [] },
-          { "id": "2.3.2", "name": "Financial Statement Preparation", "isComplete": false, "children": [] },
-          { "id": "2.3.3", "name": "Tax Planning & Filing", "isComplete": false, "children": [] },
-          { "id": "2.3.4", "name": "Expense Management", "isComplete": false, "children": [] },
-          { "id": "2.3.5", "name": "Manage Credit Agreements", "isComplete": false, "children": [] }
-        ]}
-      ]
-    },
-    {
-      "id": "3", "name": "Human Resources", "isComplete": false,
-      "children": [
-        { "id": "3.1", "name": "Recruitment & Hiring", "isComplete": false, "children": [
-          { "id": "3.1.1", "name": "Job Description Creation", "isComplete": false, "children": [] },
-          { "id": "3.1.2", "name": "Applicant Tracking System", "isComplete": false, "children": [] },
-          { "id": "3.1.3", "name": "Interview Process", "isComplete": false, "children": [] },
-          { "id": "3.1.4", "name": "Offer Letter & Contracts", "isComplete": false, "children": [] }
-        ]},
-        { "id": "3.2", "name": "Onboarding & Training", "isComplete": false, "children": [
-          { "id": "3.2.1", "name": "New Hire Paperwork", "isComplete": false, "children": [] },
-          { "id": "3.2.2", "name": "Company Orientation", "isComplete": false, "children": [] },
-          { "id": "3.2.3", "name": "Role-Specific Training", "isComplete": false, "children": [] }
-        ]},
-        { "id": "3.3", "name": "Employee Management", "isComplete": false, "children": [
-          { "id": "3.3.1", "name": "Performance Review System", "isComplete": false, "children": [] },
-          { "id": "3.3.2", "name": "Benefits Administration", "isComplete": false, "children": [] },
-          { "id": "3.3.3", "name": "HR Policies & Handbook", "isComplete": false, "children": [] },
-          { "id": "3.3.4", "name": "Offboarding Process", "isComplete": false, "children": [] }
-        ]}
-      ]
-    },
-    {
-      "id": "4", "name": "Sales & Marketing", "isComplete": false,
-      "children": [
-        { "id": "4.1", "name": "Marketing Strategy", "isComplete": false, "children": [
-          { "id": "4.1.1", "name": "Market Research", "isComplete": false, "children": [] },
-          { "id": "4.1.2", "name": "Brand Identity & Messaging", "isComplete": false, "children": [] },
-          { "id": "4.1.3", "name": "Marketing Plan & Budget", "isComplete": false, "children": [] }
-        ]},
-        { "id": "4.2", "name": "Online Presence", "isComplete": false, "children": [
-          { "id": "4.2.1", "name": "Website Development", "isComplete": false, "children": [] },
-          { "id": "4.2.2", "name": "Social Media Setup", "isComplete": false, "children": [] },
-          { "id": "4.2.3", "name": "SEO Strategy", "isComplete": false, "children": [] }
-        ]},
-        { "id": "4.3", "name": "Lead Generation & Sales", "isComplete": false, "children": [
-          { "id": "4.3.1", "name": "CRM Setup", "isComplete": false, "children": [] },
-          { "id": "4.3.2", "name": "Sales Funnel Definition", "isComplete": false, "children": [] },
-          { "id": "4.3.3", "name": "Content Marketing", "isComplete": false, "children": [] },
-          { "id": "4.3.4", "name": "Paid Advertising", "isComplete": false, "children": [] }
-        ]}
-      ]
-    },
-    {
-      "id": "5", "name": "Operations & Product", "isComplete": false,
-      "children": [
-        { "id": "5.1", "name": "Product/Service Development", "isComplete": false, "children": [
-          { "id": "5.1.1", "name": "Idea & Concept Validation", "isComplete": false, "children": [] },
-          { "id": "5.1.2", "name": "Prototyping & MVP", "isComplete": false, "children": [] },
-          { "id": "5.1.3", "name": "Beta Testing & Feedback Loop", "isComplete": false, "children": [] },
-          { "id": "5.1.4", "name": "Product Launch", "isComplete": false, "children": [] }
-        ]},
-        { "id": "5.2", "name": "Supply Chain & Customer Mgmt", "isComplete": false, "children": [
-          { "id": "5.2.1", "name": "Supplier Sourcing & Vetting", "isComplete": false, "children": [] },
-          { "id": "5.2.2", "name": "Inventory Management System", "isComplete": false, "children": [] },
-          { "id": "5.2.3", "name": "Shipping & Fulfillment", "isComplete": false, "children": [] },
-          { "id": "5.2.4", "name": "Track Customer Churn", "isComplete": false, "children": [] }
-        ]},
-        { "id": "5.3", "name": "Customer Support", "isComplete": false, "children": [
-          { "id": "5.3.1", "name": "Support Channel Setup", "isComplete": false, "children": [] },
-          { "id": "5.3.2", "name": "Ticketing System", "isComplete": false, "children": [] },
-          { "id": "5.3.3", "name": "Knowledge Base/FAQ", "isComplete": false, "children": [] }
-        ]}
-      ]
-    },
-    {
-      "id": "6", "name": "Technology & IP", "isComplete": false,
-      "children": [
-        { "id": "6.1", "name": "IT & Infrastructure", "isComplete": false, "children": [
-          { "id": "6.1.1", "name": "Setup Email & Comms Tools", "isComplete": false, "children": [] },
-          { "id": "6.1.2", "name": "Data Backup & Security", "isComplete": false, "children": [] },
-          { "id": "6.1.3", "name": "Hardware & Software Procurement", "isComplete": false, "children": [] }
-        ]},
-        { "id": "6.2", "name": "Intellectual Property", "isComplete": false, "children": [
-          { "id": "6.2.1", "name": "Trademark Registration", "isComplete": false, "children": [] },
-          { "id": "6.2.2", "name": "Patent Application", "isComplete": false, "children": [] },
-          { "id": "6.2.3", "name": "Manage Domain Portfolio", "isComplete": false, "children": [] },
-          { "id": "6.2.4", "name": "Third-Party IP Licensing", "isComplete": false, "children": [] }
-        ]}
-      ]
-    },
-    {
-      "id": "7", "name": "Risk & Insurance", "isComplete": false,
-      "children": [
-        { "id": "7.1", "name": "Insurance Management", "isComplete": false, "children": [
-          { "id": "7.1.1", "name": "Property & Casualty Insurance", "isComplete": false, "children": [] },
-          { "id": "7.1.2", "name": "General Liability Insurance", "isComplete": false, "children": [] },
-          { "id": "7.1.3", "name": "Directors & Officers Insurance", "isComplete": false, "children": [] }
-        ]},
-        { "id": "7.2", "name": "Litigation", "isComplete": false, "children": [
-          { "id": "7.2.1", "name": "Track Pending/Threatened Claims", "isComplete": false, "children": [] },
-          { "id": "7.2.2", "name": "Manage Settlement Agreements", "isComplete": false, "children": [] }
-        ]}
+        {
+          "id": "1.1",
+          "name": "Business Formation",
+          "isComplete": false,
+          "children": [
+            { "id": "1.1.1", "name": "Business Plan Creation", "isComplete": false, "children": [] },
+            { "id": "1.1.2", "name": "Name Registration", "isComplete": false, "children": [] },
+            { "id": "1.1.3", "name": "Legal Structure (LLC, Corp)", "isComplete": false, "children": [] }
+          ]
+        }
       ]
     }
   ]
 }
+```
 
-State Management: This central data object will be held in the application's main state (e.g., using React's useState or a state management library like Zustand or Redux). Any change made in the Checklist View will update this single source of truth, which will then trigger a re-render of both the Graph View and the Summary Dashboard.
+## 8. Implementation Phases (Risk-Mitigated Approach)
 
-4. Detailed Feature Breakdown
-A. The Graph View (The "Forest")
-Technology: Best implemented with a library like D3.js for its power in creating force-directed graphs.
+### Phase 1: Core Infrastructure (Week 1)
+- ✅ Set up Next.js 14 with TypeScript and stable dependencies
+- ✅ Implement data structure and React Context
+- ✅ Create basic layout and navigation
+- ✅ Add localStorage persistence with hydration safety
+- ✅ Implement error boundaries and defensive programming
 
-Layout & Hierarchy:
+### Phase 2: Essential Views (Week 2)
+- ✅ Build checklist tree component with cascading logic
+- ✅ Create progress dashboard with metrics
+- ✅ Add basic styling with Tailwind v3
+- ✅ Implement data validation and error handling
 
-The visualization will be a D3.js force-directed tree, as seen in examples like this one. This structure is ideal as it enforces the parent-child hierarchy of a tree while using a force simulation to create an organic, readable layout.
+### Phase 3: Visualization (Week 3)
+- ✅ Integrate D3.js force-directed graph
+- ✅ Implement node sizing and coloring logic
+- ✅ Add interactive controls (zoom, pan, drag)
+- ✅ Create real-time synchronization between views
 
-A central node for "The Company" will act as the root.
+### Phase 4: Production Deployment (Week 4)
+- ✅ Create production-ready Dockerfile
+- ✅ Configure Railway deployment
+- ✅ Optimize build process and resource usage
+- ✅ Add comprehensive error handling and monitoring
 
-Primary business functions ("Finance," "HR," etc.) will be directly linked to the root.
+## 9. Critical Success Factors (Lessons Learned)
 
-Sub-processes will be linked to their parent functions, creating clear, hierarchical branches that naturally push and pull on each other to avoid overlap.
+### 9.1 Dependency Management
+- **Use stable LTS versions** (React 18, Next.js 14, Node 18)
+- **Avoid bleeding-edge releases** until thoroughly tested
+- **Pin exact versions** in package.json for reproducible builds
+- **Regular security updates** while maintaining stability
 
-Node Sizing Logic:
+### 9.2 Import Strategy
+- **Prefer relative imports** over TypeScript path mapping
+- **Test imports in Docker environment** during development
+- **Avoid complex module resolution** that fails in containers
+- **Use consistent import patterns** across the codebase
 
-The size (radius) of each node will be proportional to its "weight" in the organization.
+### 9.3 Resource Management
+- **Design for container constraints** (1GB memory limit)
+- **Use NODE_OPTIONS** for heap size optimization
+- **Implement progressive loading** for large datasets
+- **Monitor build performance** and optimize accordingly
 
-Weight Calculation: A node's weight is 1 + (the sum of the weights of all its children).
+### 9.4 Error Handling
+- **Wrap components in ErrorBoundary** to prevent cascading failures
+- **Provide meaningful fallback UIs** for failed components
+- **Log errors appropriately** for debugging and monitoring
+- **Test error scenarios** during development
 
-This ensures that leaf nodes are the smallest and the central "Company" node is the largest, visually representing the scope of each process.
+### 9.5 Build & Deployment
+- **Use single-stage Docker builds** for simplicity and reliability
+- **Test Docker builds locally** before deployment
+- **Optimize build context** with comprehensive .dockerignore
+- **Monitor deployment metrics** and resource usage
 
-Node Coloring Logic:
+## 10. Troubleshooting Guide (Common Issues & Solutions)
 
-Leaf Nodes (Tasks): The color is binary. If isComplete is false, the node is red. If true, it's green.
+### 10.1 Module Resolution Errors
+**Problem**: "Can't resolve '@/context/DataContext'"
+**Solution**: Replace @ imports with relative imports (../../path)
 
-Parent Nodes (Categories): The color is a gradient value based on the completion percentage of all leaf nodes downstream.
+### 10.2 Build Memory Issues
+**Problem**: Exit code 240, build out of memory
+**Solution**: Reduce NODE_OPTIONS heap size, use stable dependencies
 
-Calculation: (number of completed leaf nodes below) / (total number of leaf nodes below).
+### 10.3 Docker Build Failures
+**Problem**: Build context too large, file not found errors
+**Solution**: Update .dockerignore, use COPY . . for complete structure
 
-Color Scale: This percentage will map to a color scale (e.g., Red -> Yellow -> Green). 0% is pure red, 50% is pure yellow, 100% is pure green.
+### 10.4 Hydration Mismatches
+**Problem**: Server/client rendering differences
+**Solution**: Use isLoaded state pattern for client-only features
 
-Interactivity:
+### 10.5 D3.js Container Issues
+**Problem**: Zero-width containers causing crashes
+**Solution**: Implement fallback dimensions (800x600) in components
 
-Users can click and drag nodes to rearrange the graph for better viewing.
+## 11. Future Enhancements (V2+ Roadmap)
 
-Zooming and panning will be standard for navigating large graphs.
+### 11.1 Data Persistence
+- Backend integration with PostgreSQL or MongoDB
+- User authentication and multi-tenant support
+- Real-time collaboration with WebSockets
+- Data export/import functionality
 
-B. The Checklist View (The "Trees")
-Structure: A standard, recursive UI component that renders a collapsible, indented list.
+### 11.2 Advanced Features
+- Custom business process templates
+- Timeline/Gantt view for project planning
+- Document attachment and linking
+- Advanced analytics and reporting
 
-Functionality:
+### 11.3 Enterprise Features
+- Team management and role-based access
+- API integrations with business tools
+- Advanced visualization options
+- Custom branding and white-labeling
 
-Each item will have a checkbox.
+## 12. Performance & Scalability Considerations
 
-Checking a parent node's box will automatically check all of its children.
+### 12.1 Frontend Optimization
+- Implement virtual scrolling for large checklists
+- Use React.memo() for expensive component renders
+- Optimize D3.js renders with requestAnimationFrame
+- Implement lazy loading for heavy components
 
-Unchecking a parent node's box will uncheck all its children.
+### 12.2 Data Processing
+- Cache computed values (progress calculations)
+- Use Web Workers for heavy computations
+- Implement efficient tree traversal algorithms
+- Optimize localStorage operations
 
-Checking the last unchecked child of a parent will automatically check the parent.
+### 12.3 Bundle Optimization
+- Code splitting for route-based loading
+- Tree shaking for unused dependencies
+- Asset optimization (images, fonts)
+- Progressive Web App capabilities
 
-This cascading logic ensures the data integrity remains logical and intuitive for the user.
+---
 
-Completed items will have a line-through style for clear visual confirmation.
+**Key Success Metrics:**
+- Application loads in <2 seconds on 3G networks
+- Graph visualization handles 500+ nodes smoothly  
+- Zero crashes from error boundaries
+- 99.9% deployment success rate
+- Sub-1GB memory usage in production
 
-C. The Summary Dashboard
-Display: A static panel, always visible, that provides a quantitative overview.
-
-Metrics:
-
-Overall Progress: (Total completed leaf nodes) / (Total leaf nodes in the entire system). Displayed as a percentage and a progress bar.
-
-Categorical Progress: For each main business function (Finance, HR, etc.), calculate and display its individual completion percentage and progress bar. This allows users to quickly identify which departments are excelling or lagging.
-
-5. Recommended Technical Stack
-Frontend Framework: React. Its component-based architecture is perfect for building the different views (Graph, Checklist, Summary) and managing state.
-
-Graph Visualization: D3.js. It is the industry standard for data-driven visualizations and provides the flexibility needed for the custom node sizing and coloring.
-
-Styling: Tailwind CSS. For rapid, utility-first styling to create the clean, dark-themed UI.
-
-6. Potential Future Enhancements (V2 Roadmap)
-Data Persistence: Integrate with a backend or local storage so the user's progress is saved between sessions.
-
-Notes & Documents: Allow users to attach notes, links, or upload documents to each node (e.g., link to the registered business license PDF on the "Licenses & Permits" node).
-
-User Collaboration: Introduce multi-user support, allowing team members to see progress and check off tasks within their own departments.
-
-Templates: Offer different process templates for various business types (e.g., "SaaS Startup," "Restaurant," "E-commerce Store").
-
-Timeline/Gantt View: Add a third view that maps processes onto a timeline, helping with planning and deadlines.
+This comprehensive plan addresses the technical, deployment, and scalability challenges encountered during initial development, providing a robust foundation for reliable production deployment and future growth.
