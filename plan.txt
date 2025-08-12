@@ -1,0 +1,262 @@
+1. Project Vision & Core Goal
+To create an intuitive, visual tool that allows founders, executives, and investors to instantly assess a company's operational maturity. The app will translate a complex checklist of business processes into an interactive "living" organizational chart, providing an at-a-glance understanding of progress and highlighting areas that require attention.
+
+2. Core User Experience & Flow
+The user journey will be simple and focused on two complementary views:
+
+"How are we doing?" (The Graph): The user opens the app and is immediately presented with the Graph View. They can see the entire company structure as a node graph. The colors give them an instant qualitative feel for progress (e.g., "Finance looks very red, we need to work on that"). They can zoom, pan, and explore the different branches of the business.
+
+"Let's get it done." (The Checklist): The user navigates to the Checklist View. Here, they see a familiar, collapsible list of every process. They find the specific task they just completed (e.g., "1.1.2. Name Registration"), and check the box.
+
+"See the impact." (Instant Feedback): Upon checking the box, the user navigates back to the Graph View. They immediately see the "Name Registration" node has turned from red to green. They also notice its parent node, "Business Formation," has shifted its color slightly more towards green, reflecting the progress. The percentages in the Summary Dashboard have also updated in real-time.
+
+3. Data Architecture & Management
+The entire application will be driven by a single, hierarchical data object. This ensures consistency and simplifies state management.
+
+Structure: A JSON object will represent the hierarchy. Each node in the object will have the following properties:
+
+id: A unique string (e.g., "2.1.3").
+
+name: The display name (e.g., "Implement Accounting Software").
+
+isComplete: A boolean (true/false), defaulting to false. This is the primary state changed by the user.
+
+children: An array of child node objects. If the array is empty, it's a "leaf" node (a specific task).
+
+Example Data Object: The application will be initialized with a comprehensive structure like the one below.
+
+{
+  "id": "root",
+  "name": "My Company",
+  "isComplete": false,
+  "children": [
+    {
+      "id": "1", "name": "Corporate & Governance", "isComplete": false,
+      "children": [
+        { "id": "1.1", "name": "Business Formation", "isComplete": false, "children": [
+          { "id": "1.1.1", "name": "Business Plan Creation", "isComplete": false, "children": [] },
+          { "id": "1.1.2", "name": "Name Registration", "isComplete": false, "children": [] },
+          { "id": "1.1.3", "name": "Legal Structure (LLC, Corp)", "isComplete": false, "children": [] },
+          { "id": "1.1.4", "name": "Federal & State Registration", "isComplete": false, "children": [] },
+          { "id": "1.1.5", "name": "Obtain Business Licenses & Permits", "isComplete": false, "children": [] }
+        ]},
+        { "id": "1.2", "name": "Legal & Compliance", "isComplete": false, "children": [
+          { "id": "1.2.1", "name": "Draft Founder/Shareholder Agreements", "isComplete": false, "children": [] },
+          { "id": "1.2.2", "name": "Establish Corporate Bylaws & Minute Books", "isComplete": false, "children": [] },
+          { "id": "1.2.3", "name": "Data Privacy Compliance (GDPR, CCPA)", "isComplete": false, "children": [] },
+          { "id": "1.2.4", "name": "Terms of Service & Privacy Policy", "isComplete": false, "children": [] },
+          { "id": "1.2.5", "name": "Identify Third-Party Consents/Approvals", "isComplete": false, "children": [] }
+        ]},
+        { "id": "1.3", "name": "Investor & Shareholder Management", "isComplete": false, "children": [
+          { "id": "1.3.1", "name": "Maintain Capitalization Table", "isComplete": false, "children": [] },
+          { "id": "1.3.2", "name": "Pitch Deck Creation", "isComplete": false, "children": [] },
+          { "id": "1.3.3", "name": "Fundraising Rounds", "isComplete": false, "children": [] },
+          { "id": "1.3.4", "name": "Investor Reporting", "isComplete": false, "children": [] },
+          { "id": "1.3.5", "name": "Manage Stock Option/Equity Plans", "isComplete": false, "children": [] }
+        ]}
+      ]
+    },
+    {
+      "id": "2", "name": "Finance & Accounting", "isComplete": false,
+      "children": [
+        { "id": "2.1", "name": "Financial Setup", "isComplete": false, "children": [
+          { "id": "2.1.1", "name": "Open Business Bank Account", "isComplete": false, "children": [] },
+          { "id": "2.1.2", "name": "Setup Chart of Accounts", "isComplete": false, "children": [] },
+          { "id": "2.1.3", "name": "Implement Accounting Software", "isComplete": false, "children": [] }
+        ]},
+        { "id": "2.2", "name": "Core Accounting", "isComplete": false, "children": [
+          { "id": "2.2.1", "name": "Accounts Payable Process", "isComplete": false, "children": [] },
+          { "id": "2.2.2", "name": "Accounts Receivable Process", "isComplete": false, "children": [] },
+          { "id": "2.2.3", "name": "Payroll Processing", "isComplete": false, "children": [] },
+          { "id": "2.2.4", "name": "Bank Reconciliation", "isComplete": false, "children": [] }
+        ]},
+        { "id": "2.3", "name": "Financial Management", "isComplete": false, "children": [
+          { "id": "2.3.1", "name": "Budgeting & Forecasting", "isComplete": false, "children": [] },
+          { "id": "2.3.2", "name": "Financial Statement Preparation", "isComplete": false, "children": [] },
+          { "id": "2.3.3", "name": "Tax Planning & Filing", "isComplete": false, "children": [] },
+          { "id": "2.3.4", "name": "Expense Management", "isComplete": false, "children": [] },
+          { "id": "2.3.5", "name": "Manage Credit Agreements", "isComplete": false, "children": [] }
+        ]}
+      ]
+    },
+    {
+      "id": "3", "name": "Human Resources", "isComplete": false,
+      "children": [
+        { "id": "3.1", "name": "Recruitment & Hiring", "isComplete": false, "children": [
+          { "id": "3.1.1", "name": "Job Description Creation", "isComplete": false, "children": [] },
+          { "id": "3.1.2", "name": "Applicant Tracking System", "isComplete": false, "children": [] },
+          { "id": "3.1.3", "name": "Interview Process", "isComplete": false, "children": [] },
+          { "id": "3.1.4", "name": "Offer Letter & Contracts", "isComplete": false, "children": [] }
+        ]},
+        { "id": "3.2", "name": "Onboarding & Training", "isComplete": false, "children": [
+          { "id": "3.2.1", "name": "New Hire Paperwork", "isComplete": false, "children": [] },
+          { "id": "3.2.2", "name": "Company Orientation", "isComplete": false, "children": [] },
+          { "id": "3.2.3", "name": "Role-Specific Training", "isComplete": false, "children": [] }
+        ]},
+        { "id": "3.3", "name": "Employee Management", "isComplete": false, "children": [
+          { "id": "3.3.1", "name": "Performance Review System", "isComplete": false, "children": [] },
+          { "id": "3.3.2", "name": "Benefits Administration", "isComplete": false, "children": [] },
+          { "id": "3.3.3", "name": "HR Policies & Handbook", "isComplete": false, "children": [] },
+          { "id": "3.3.4", "name": "Offboarding Process", "isComplete": false, "children": [] }
+        ]}
+      ]
+    },
+    {
+      "id": "4", "name": "Sales & Marketing", "isComplete": false,
+      "children": [
+        { "id": "4.1", "name": "Marketing Strategy", "isComplete": false, "children": [
+          { "id": "4.1.1", "name": "Market Research", "isComplete": false, "children": [] },
+          { "id": "4.1.2", "name": "Brand Identity & Messaging", "isComplete": false, "children": [] },
+          { "id": "4.1.3", "name": "Marketing Plan & Budget", "isComplete": false, "children": [] }
+        ]},
+        { "id": "4.2", "name": "Online Presence", "isComplete": false, "children": [
+          { "id": "4.2.1", "name": "Website Development", "isComplete": false, "children": [] },
+          { "id": "4.2.2", "name": "Social Media Setup", "isComplete": false, "children": [] },
+          { "id": "4.2.3", "name": "SEO Strategy", "isComplete": false, "children": [] }
+        ]},
+        { "id": "4.3", "name": "Lead Generation & Sales", "isComplete": false, "children": [
+          { "id": "4.3.1", "name": "CRM Setup", "isComplete": false, "children": [] },
+          { "id": "4.3.2", "name": "Sales Funnel Definition", "isComplete": false, "children": [] },
+          { "id": "4.3.3", "name": "Content Marketing", "isComplete": false, "children": [] },
+          { "id": "4.3.4", "name": "Paid Advertising", "isComplete": false, "children": [] }
+        ]}
+      ]
+    },
+    {
+      "id": "5", "name": "Operations & Product", "isComplete": false,
+      "children": [
+        { "id": "5.1", "name": "Product/Service Development", "isComplete": false, "children": [
+          { "id": "5.1.1", "name": "Idea & Concept Validation", "isComplete": false, "children": [] },
+          { "id": "5.1.2", "name": "Prototyping & MVP", "isComplete": false, "children": [] },
+          { "id": "5.1.3", "name": "Beta Testing & Feedback Loop", "isComplete": false, "children": [] },
+          { "id": "5.1.4", "name": "Product Launch", "isComplete": false, "children": [] }
+        ]},
+        { "id": "5.2", "name": "Supply Chain & Customer Mgmt", "isComplete": false, "children": [
+          { "id": "5.2.1", "name": "Supplier Sourcing & Vetting", "isComplete": false, "children": [] },
+          { "id": "5.2.2", "name": "Inventory Management System", "isComplete": false, "children": [] },
+          { "id": "5.2.3", "name": "Shipping & Fulfillment", "isComplete": false, "children": [] },
+          { "id": "5.2.4", "name": "Track Customer Churn", "isComplete": false, "children": [] }
+        ]},
+        { "id": "5.3", "name": "Customer Support", "isComplete": false, "children": [
+          { "id": "5.3.1", "name": "Support Channel Setup", "isComplete": false, "children": [] },
+          { "id": "5.3.2", "name": "Ticketing System", "isComplete": false, "children": [] },
+          { "id": "5.3.3", "name": "Knowledge Base/FAQ", "isComplete": false, "children": [] }
+        ]}
+      ]
+    },
+    {
+      "id": "6", "name": "Technology & IP", "isComplete": false,
+      "children": [
+        { "id": "6.1", "name": "IT & Infrastructure", "isComplete": false, "children": [
+          { "id": "6.1.1", "name": "Setup Email & Comms Tools", "isComplete": false, "children": [] },
+          { "id": "6.1.2", "name": "Data Backup & Security", "isComplete": false, "children": [] },
+          { "id": "6.1.3", "name": "Hardware & Software Procurement", "isComplete": false, "children": [] }
+        ]},
+        { "id": "6.2", "name": "Intellectual Property", "isComplete": false, "children": [
+          { "id": "6.2.1", "name": "Trademark Registration", "isComplete": false, "children": [] },
+          { "id": "6.2.2", "name": "Patent Application", "isComplete": false, "children": [] },
+          { "id": "6.2.3", "name": "Manage Domain Portfolio", "isComplete": false, "children": [] },
+          { "id": "6.2.4", "name": "Third-Party IP Licensing", "isComplete": false, "children": [] }
+        ]}
+      ]
+    },
+    {
+      "id": "7", "name": "Risk & Insurance", "isComplete": false,
+      "children": [
+        { "id": "7.1", "name": "Insurance Management", "isComplete": false, "children": [
+          { "id": "7.1.1", "name": "Property & Casualty Insurance", "isComplete": false, "children": [] },
+          { "id": "7.1.2", "name": "General Liability Insurance", "isComplete": false, "children": [] },
+          { "id": "7.1.3", "name": "Directors & Officers Insurance", "isComplete": false, "children": [] }
+        ]},
+        { "id": "7.2", "name": "Litigation", "isComplete": false, "children": [
+          { "id": "7.2.1", "name": "Track Pending/Threatened Claims", "isComplete": false, "children": [] },
+          { "id": "7.2.2", "name": "Manage Settlement Agreements", "isComplete": false, "children": [] }
+        ]}
+      ]
+    }
+  ]
+}
+
+State Management: This central data object will be held in the application's main state (e.g., using React's useState or a state management library like Zustand or Redux). Any change made in the Checklist View will update this single source of truth, which will then trigger a re-render of both the Graph View and the Summary Dashboard.
+
+4. Detailed Feature Breakdown
+A. The Graph View (The "Forest")
+Technology: Best implemented with a library like D3.js for its power in creating force-directed graphs.
+
+Layout & Hierarchy:
+
+The visualization will be a D3.js force-directed tree, as seen in examples like this one. This structure is ideal as it enforces the parent-child hierarchy of a tree while using a force simulation to create an organic, readable layout.
+
+A central node for "The Company" will act as the root.
+
+Primary business functions ("Finance," "HR," etc.) will be directly linked to the root.
+
+Sub-processes will be linked to their parent functions, creating clear, hierarchical branches that naturally push and pull on each other to avoid overlap.
+
+Node Sizing Logic:
+
+The size (radius) of each node will be proportional to its "weight" in the organization.
+
+Weight Calculation: A node's weight is 1 + (the sum of the weights of all its children).
+
+This ensures that leaf nodes are the smallest and the central "Company" node is the largest, visually representing the scope of each process.
+
+Node Coloring Logic:
+
+Leaf Nodes (Tasks): The color is binary. If isComplete is false, the node is red. If true, it's green.
+
+Parent Nodes (Categories): The color is a gradient value based on the completion percentage of all leaf nodes downstream.
+
+Calculation: (number of completed leaf nodes below) / (total number of leaf nodes below).
+
+Color Scale: This percentage will map to a color scale (e.g., Red -> Yellow -> Green). 0% is pure red, 50% is pure yellow, 100% is pure green.
+
+Interactivity:
+
+Users can click and drag nodes to rearrange the graph for better viewing.
+
+Zooming and panning will be standard for navigating large graphs.
+
+B. The Checklist View (The "Trees")
+Structure: A standard, recursive UI component that renders a collapsible, indented list.
+
+Functionality:
+
+Each item will have a checkbox.
+
+Checking a parent node's box will automatically check all of its children.
+
+Unchecking a parent node's box will uncheck all its children.
+
+Checking the last unchecked child of a parent will automatically check the parent.
+
+This cascading logic ensures the data integrity remains logical and intuitive for the user.
+
+Completed items will have a line-through style for clear visual confirmation.
+
+C. The Summary Dashboard
+Display: A static panel, always visible, that provides a quantitative overview.
+
+Metrics:
+
+Overall Progress: (Total completed leaf nodes) / (Total leaf nodes in the entire system). Displayed as a percentage and a progress bar.
+
+Categorical Progress: For each main business function (Finance, HR, etc.), calculate and display its individual completion percentage and progress bar. This allows users to quickly identify which departments are excelling or lagging.
+
+5. Recommended Technical Stack
+Frontend Framework: React. Its component-based architecture is perfect for building the different views (Graph, Checklist, Summary) and managing state.
+
+Graph Visualization: D3.js. It is the industry standard for data-driven visualizations and provides the flexibility needed for the custom node sizing and coloring.
+
+Styling: Tailwind CSS. For rapid, utility-first styling to create the clean, dark-themed UI.
+
+6. Potential Future Enhancements (V2 Roadmap)
+Data Persistence: Integrate with a backend or local storage so the user's progress is saved between sessions.
+
+Notes & Documents: Allow users to attach notes, links, or upload documents to each node (e.g., link to the registered business license PDF on the "Licenses & Permits" node).
+
+User Collaboration: Introduce multi-user support, allowing team members to see progress and check off tasks within their own departments.
+
+Templates: Offer different process templates for various business types (e.g., "SaaS Startup," "Restaurant," "E-commerce Store").
+
+Timeline/Gantt View: Add a third view that maps processes onto a timeline, helping with planning and deadlines.
