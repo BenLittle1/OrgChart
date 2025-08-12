@@ -1,0 +1,25 @@
+# Nixpacks configuration for Railway deployment
+
+[phases.setup]
+nixPkgs = ['nodejs_18']
+
+[phases.install]
+cmds = [
+  'npm ci --omit=dev --ignore-scripts --no-fund --no-audit'
+]
+
+[phases.build]
+cmds = [
+  'npm run build'
+]
+
+[start]
+cmd = 'npm start'
+
+# Environment variables for build optimization
+[variables]
+NODE_ENV = 'production'
+NODE_OPTIONS = '--max-old-space-size=2048'
+NPM_CONFIG_FUND = 'false'
+NPM_CONFIG_AUDIT = 'false'
+NEXT_TELEMETRY_DISABLED = '1'
