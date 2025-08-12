@@ -1,4 +1,4 @@
-import { OrgNode, ProgressStats, CategoryProgress, GraphNode, GraphLink } from '@/types';
+import { OrgNode, ProgressStats, CategoryProgress, GraphNode, GraphLink } from '../types';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

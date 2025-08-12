@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import ProgressMetrics from '@/components/dashboard/ProgressMetrics';
-import CategoryBreakdown from '@/components/dashboard/CategoryBreakdown';
+import ProgressMetrics from '../../components/dashboard/ProgressMetrics';
+import CategoryBreakdown from '../../components/dashboard/CategoryBreakdown';
 
 export default function DashboardPage() {
   return (

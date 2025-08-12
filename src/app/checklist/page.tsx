@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useData } from '@/context/DataContext';
-import ChecklistTree from '@/components/checklist/ChecklistTree';
+import { useData } from '../../context/DataContext';
+import ChecklistTree from '../../components/checklist/ChecklistTree';
 
 export default function ChecklistPage() {
   const { data } = useData();

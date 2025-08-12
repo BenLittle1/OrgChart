@@ -2,9 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { useData } from '@/context/DataContext';
-import { convertToGraphData, getCompletionColor } from '@/lib/utils';
-import { GraphNode, GraphLink } from '@/types';
+import { useData } from '../../context/DataContext';
+import { convertToGraphData, getCompletionColor } from '../../lib/utils';
+import { GraphNode, GraphLink } from '../../types';
 
 export default function GraphVisualization() {
   const svgRef = useRef<SVGSVGElement>(null);

@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useData } from '@/context/DataContext';
-import { getCompletionColor, formatPercentage } from '@/lib/utils';
+import { useData } from '../context/DataContext';
+import { getCompletionColor, formatPercentage } from '../lib/utils';
 
 export default function Home() {
   const { getProgress, getCategoryProgress } = useData();

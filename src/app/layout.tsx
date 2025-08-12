@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { DataProvider } from '@/context/DataContext';
-import Navigation from '@/components/layout/Navigation';
-import SummaryPanel from '@/components/layout/SummaryPanel';
+import { DataProvider } from '../context/DataContext';
+import Navigation from '../components/layout/Navigation';
+import SummaryPanel from '../components/layout/SummaryPanel';
 
 export const metadata: Metadata = {
   title: "OrgGraph - Organizational Maturity Assessment",

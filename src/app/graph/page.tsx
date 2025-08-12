@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import GraphVisualization from '@/components/graph/GraphVisualization';
-import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import GraphVisualization from '../../components/graph/GraphVisualization';
+import ErrorBoundary from '../../components/ui/ErrorBoundary';
 
 export default function GraphPage() {
   return (

@@ -1,13 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { OrgNode, DataContextType } from '@/types';
-import { initialData } from '@/lib/data';
+import { OrgNode, DataContextType } from '../types';
+import { initialData } from '../lib/data';
 import { 
   updateNodeCompletion, 
   calculateProgress, 
   calculateCategoryProgress 
-} from '@/lib/utils';
+} from '../lib/utils';
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 

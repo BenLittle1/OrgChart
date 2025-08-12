@@ -1,4 +1,4 @@
-import { OrgNode } from '@/types';
+import { OrgNode } from '../types';
 
 export const initialData: OrgNode = {
   "id": "root",

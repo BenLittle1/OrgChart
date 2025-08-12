@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useData } from '@/context/DataContext';
-import { getCompletionColor, formatPercentage, calculateProgress } from '@/lib/utils';
+import { useData } from '../../context/DataContext';
+import { getCompletionColor, formatPercentage, calculateProgress } from '../../lib/utils';
 
 export default function CategoryBreakdown() {
   const { data } = useData();

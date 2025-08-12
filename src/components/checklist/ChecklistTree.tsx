@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { OrgNode } from '@/types';
-import { useData } from '@/context/DataContext';
-import { cn, isLeafNode, getCompletionColor, calculateProgress } from '@/lib/utils';
+import { OrgNode } from '../../types';
+import { useData } from '../../context/DataContext';
+import { cn, isLeafNode, getCompletionColor, calculateProgress } from '../../lib/utils';
 
 interface ChecklistTreeProps {
   node: OrgNode;

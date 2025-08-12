@@ -106,10 +106,15 @@ Located in `src/lib/utils.ts`:
 - **Build process**: Clean configuration without conflicting lockfiles or problematic postinstall scripts
 
 ### Railway Deployment
-- Configured with `railway.json` for optimal deployment
-- `next.config.ts` uses standalone output for better performance
-- Environment variables configured for Railway hosting
-- Health checks enabled on root endpoint
+- **Multi-stage Dockerfile**: Custom Docker build with deps/build/runtime stages for optimal resource usage
+- **Docker layer caching**: Leverages Docker's build caching to reduce build time and memory consumption
+- **Memory optimization**: NODE_OPTIONS --max-old-space-size=1024 configured for Railway's container constraints
+- **Security**: Non-root nodejs user (uid/gid 1001) for secure container runtime
+- **railway.json**: DOCKERFILE builder configuration with health checks and restart policies
+- **next.config.js**: Standalone output with image optimization and security headers
+- **Stable dependencies**: React 18.2.0, Next.js 14.2.31, Tailwind v3.4.16 for deployment reliability
+- **Build context optimization**: .dockerignore excludes unnecessary files to reduce Docker context size
+- Health checks configured on root endpoint with 300s timeout and retry policies
 
 ## Data Structure
 
@@ -173,7 +178,17 @@ The organizational data is stored in `src/lib/data.ts` as a comprehensive hierar
 - **Build cache**: Add tsconfig.tsbuildinfo to .gitignore to prevent Docker layer conflicts
 
 ### Railway-Specific Deployment Issues
-- **Exit code 240**: Usually indicates memory constraints or dependency version conflicts
-- **Docker build failures**: Often caused by build cache files (tsconfig.tsbuildinfo) or unstable dependency versions
-- **Resource optimization**: Use NODE_OPTIONS memory limits and build flags to work within Railway's resource constraints
-- **Configuration compatibility**: Ensure config files match framework versions (next.config.js for Next.js 14, Tailwind v3 syntax)
+- **Exit code 240**: Memory constraints or dependency conflicts - resolved with custom Dockerfile and optimized resource allocation
+- **Docker build failures**: Previously caused by build cache files (tsconfig.tsbuildinfo) or nixpacks resource limitations
+- **Multi-stage build solution**: Separates dependency installation, build, and runtime phases for better memory management
+- **Resource optimization**: Custom Dockerfile with explicit NODE_OPTIONS memory limits (1024MB) and build caching
+- **Build context optimization**: .dockerignore reduces Docker context size and build time
+- **Dependency optimization**: Move type definitions to devDependencies to reduce runtime bundle size
+- **Configuration compatibility**: Use next.config.js (not .ts) for Next.js 14, Tailwind v3 syntax, Docker builder vs nixpacks
+
+### Docker Deployment Architecture
+- **Stage 1 (base)**: Node.js 18 Alpine with environment variables and working directory setup
+- **Stage 2 (deps)**: Isolated dependency installation with npm ci optimizations and cache cleaning
+- **Stage 3 (builder)**: Application build stage copying dependencies and source code
+- **Stage 4 (runner)**: Production runtime with non-root user, minimal surface area, and security hardening
+- **Layer caching**: Optimized for Railway's build caching to minimize rebuild time and resource usage

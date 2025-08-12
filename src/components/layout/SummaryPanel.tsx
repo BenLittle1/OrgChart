@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useData } from '@/context/DataContext';
-import { formatPercentage, getCompletionColor } from '@/lib/utils';
+import { useData } from '../../context/DataContext';
+import { formatPercentage, getCompletionColor } from '../../lib/utils';
 
 export default function SummaryPanel() {
   const { getProgress, getCategoryProgress, resetAllData } = useData();
