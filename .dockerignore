@@ -58,7 +58,5 @@ plan.txt
 .vscode
 .idea
 
-# Railway
+# Railway config (keep these out of Docker context)
 .railway
-railway.json
-nixpacks.toml

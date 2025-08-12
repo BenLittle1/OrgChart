@@ -1,4 +1,4 @@
-# Multi-stage build for Railway deployment optimization
+# Simplified Docker build for Railway deployment
 FROM node:18-alpine AS base
 
 # Set working directory
@@ -11,68 +11,46 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NPM_CONFIG_FUND=false
 ENV NPM_CONFIG_AUDIT=false
 
-# Install dependencies in a separate stage to leverage Docker layer caching
-FROM base AS deps
+# Install system dependencies
 RUN apk add --no-cache libc6-compat
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Copy all files first
+COPY . .
 
-# Install all dependencies (including dev) for build stage
-RUN npm ci --ignore-scripts --no-fund --no-audit && \
-    npm cache clean --force
+# Install all dependencies (including devDependencies for build)
+RUN npm ci --ignore-scripts --no-fund --no-audit
 
-# Production dependencies stage
-FROM base AS prod-deps
-RUN apk add --no-cache libc6-compat
-
-# Copy package files
-COPY package.json package-lock.json* ./
-
-# Install only production dependencies
-RUN npm ci --omit=dev --ignore-scripts --no-fund --no-audit && \
-    npm cache clean --force
-
-# Build stage
-FROM base AS builder
-WORKDIR /app
-
-# Copy node_modules from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy package.json files
-COPY package.json package-lock.json* ./
-
-# Copy configuration files
-COPY next.config.js ./
-COPY tsconfig.json ./
-COPY next-env.d.ts ./
-COPY tailwind.config.js ./
-COPY postcss.config.mjs ./
-COPY eslint.config.mjs ./
-
-# Copy source code
-COPY src ./src
-COPY public ./public
+# Debug: List directory structure
+RUN echo "=== Directory structure ===" && \
+    ls -la && \
+    echo "=== Source directory ===" && \
+    ls -la src/ && \
+    echo "=== tsconfig.json content ===" && \
+    cat tsconfig.json
 
 # Build the application
 RUN npm run build
 
 # Production stage
-FROM base AS runner
+FROM node:18-alpine AS runner
 WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=512"
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Install system dependencies
+RUN apk add --no-cache libc6-compat
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy production dependencies
-COPY --from=prod-deps /app/node_modules ./node_modules
-
 # Copy built application
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=base /app/public ./public
+COPY --from=base --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=base --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Switch to non-root user
 USER nextjs
