@@ -196,7 +196,9 @@ EXPOSE 3000
 CMD ["npm", "start"]
 ```
 
-### 6.2 Railway Configuration
+### 6.2 Railway Platform Deployment
+
+**Railway Configuration (railway.json)**:
 ```json
 {
   "build": {
@@ -206,7 +208,8 @@ CMD ["npm", "start"]
   "deploy": {
     "healthcheckPath": "/",
     "healthcheckTimeout": 300,
-    "restartPolicyType": "ON_FAILURE"
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
   },
   "environments": {
     "production": {
@@ -220,11 +223,51 @@ CMD ["npm", "start"]
 }
 ```
 
-### 6.3 Build Optimization
-- **Memory management**: NODE_OPTIONS with appropriate heap size
-- **Dependency separation**: devDependencies vs runtime dependencies
-- **Build caching**: Docker layer optimization
-- **Asset optimization**: Next.js standalone output mode
+**Railway Platform Benefits**:
+- **Automatic HTTPS**: SSL certificates managed automatically
+- **Environment Variables**: Secure configuration management via dashboard
+- **Git Integration**: Automatic deployments from GitHub/GitLab
+- **Resource Scaling**: Automatic scaling based on traffic patterns
+- **Observability**: Built-in logging, metrics, and monitoring
+- **Edge Network**: Global CDN for static asset delivery
+
+**Railway-Specific Optimizations**:
+- Use Dockerfile builder for maximum control over build process
+- Implement health checks for automatic failure detection
+- Configure restart policies for service resilience
+- Leverage Railway's environment variable injection
+- Optimize for Railway's containerized deployment model
+
+### 6.3 Railway-Specific Build Configuration
+
+**Build Environment Setup**:
+```bash
+# .dockerignore optimized for Railway
+node_modules
+.next
+.git
+*.md
+.DS_Store
+```
+
+**Environment Variables Configuration**:
+```json
+{
+  "NODE_ENV": "production",
+  "NODE_OPTIONS": "--max-old-space-size=1024",
+  "NEXT_TELEMETRY_DISABLED": "1",
+  "NEXT_PUBLIC_APP_URL": "${{RAILWAY_PUBLIC_DOMAIN}}"
+}
+```
+
+**Railway Platform Features Integration**:
+- **Automatic Builds**: Triggered by Git pushes to main branch
+- **Environment Isolation**: Separate staging and production environments
+- **Resource Monitoring**: Railway dashboard for performance metrics
+- **Log Aggregation**: Centralized logging through Railway interface
+- **Database Provisioning**: One-click PostgreSQL/Redis add-ons
+- **Custom Domains**: SSL certificate management through Railway
+- **Team Collaboration**: Project sharing and access control
 
 ## 7. Data Structure (7 Main Categories, 50+ Tasks)
 
@@ -295,10 +338,12 @@ CMD ["npm", "start"]
 ## 9. Development and Deployment Principles
 
 ### 9.1 Technology Selection Criteria
-- Choose mature, well-supported technologies with active communities
-- Prioritize long-term support (LTS) versions for production stability
-- Evaluate dependencies for security, performance, and maintenance burden
-- Prefer established patterns over experimental approaches
+- **Maturity**: Choose well-supported technologies with active communities
+- **Stability**: Prioritize LTS versions compatible with Railway's container environment
+- **Performance**: Evaluate dependencies for Railway's resource constraints (1GB memory)
+- **Deployment**: Select technologies that work reliably in Railway's Docker containers
+- **Ecosystem**: Prefer tools with strong Next.js and containerization support
+- **Monitoring**: Choose libraries compatible with Railway's observability features
 
 ### 9.2 Code Organization Standards
 - Implement consistent module organization across the application
@@ -318,11 +363,15 @@ CMD ["npm", "start"]
 - Write tests for critical business logic and user workflows
 - Implement proper logging and monitoring capabilities
 
-### 9.5 Production Deployment Standards
-- Use containerization for consistent deployment environments
-- Implement proper security practices (non-root users, minimal attack surface)
-- Design for observability with health checks and metrics
-- Plan for rollback and disaster recovery scenarios
+### 9.5 Railway Production Deployment Standards
+- **Containerization**: Use Docker for consistent Railway deployment environments
+- **Security**: Implement non-root users and minimal container attack surface
+- **Observability**: Design health checks compatible with Railway's monitoring
+- **Environment Management**: Leverage Railway's secure variable injection system
+- **Resource Awareness**: Optimize for Railway's memory and CPU constraints
+- **Git Integration**: Structure repository for Railway's automatic deployment pipeline
+- **Rollback Strategy**: Use Railway's deployment history for quick rollbacks
+- **Domain Configuration**: Plan SSL and custom domain setup through Railway dashboard
 
 ## 10. Architectural Best Practices
 
@@ -350,11 +399,15 @@ CMD ["npm", "start"]
 - Handle hydration safely with client-only patterns
 - Maintain immutable data update patterns
 
-### 10.5 Container and Deployment Considerations
-- Design components with responsive dimensions
-- Use environment variables for configuration
-- Implement proper health checks and graceful shutdown
-- Optimize build processes for target environments
+### 10.5 Railway Deployment Architecture
+- **Container Optimization**: Design for Railway's containerized environment with 1GB memory limits
+- **Environment Configuration**: Use Railway's secure environment variable management
+- **Health Monitoring**: Implement `/` health check endpoint for Railway's monitoring
+- **Build Efficiency**: Optimize Docker builds for Railway's resource constraints
+- **Static Assets**: Leverage Railway's automatic CDN for Next.js static files
+- **Database Integration**: Plan for Railway's PostgreSQL/Redis add-ons if needed
+- **Domain Management**: Configure custom domains through Railway's dashboard
+- **Scaling Strategy**: Design for Railway's horizontal scaling capabilities
 
 ## 11. Future Enhancements (V2+ Roadmap)
 
