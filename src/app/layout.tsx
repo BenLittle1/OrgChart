@@ -1,36 +1,35 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
 import { DataProvider } from '../context/DataContext';
-import Navigation from '../components/layout/Navigation';
-import SummaryPanel from '../components/layout/SummaryPanel';
+import { MainLayout } from '../components/layout/MainLayout';
+import { ErrorBoundary } from '../components/ui/ErrorBoundary';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "OrgGraph - Organizational Maturity Assessment",
-  description: "Visual tool for tracking company operational maturity and business process completion",
+  title: 'OrgGraph - Organizational Maturity Assessment',
+  description: 'Visualize and track your organization\'s operational maturity through interactive dashboards, checklists, and network graphs.',
+  keywords: ['organizational assessment', 'business maturity', 'process visualization', 'startup tools'],
+  authors: [{ name: 'OrgGraph Team' }],
+  viewport: 'width=device-width, initial-scale=1',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-slate-900 text-slate-100">
-        <DataProvider>
-          <div className="flex h-screen">
-            {/* Navigation Sidebar */}
-            <div className="w-64 bg-slate-800 border-r border-slate-700">
-              <Navigation />
-              <SummaryPanel />
-            </div>
-            
-            {/* Main Content */}
-            <main className="flex-1 overflow-hidden">
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} h-full`}>
+        <ErrorBoundary>
+          <DataProvider>
+            <MainLayout>
               {children}
-            </main>
-          </div>
-        </DataProvider>
+            </MainLayout>
+          </DataProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

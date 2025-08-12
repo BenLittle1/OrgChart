@@ -1,125 +1,117 @@
 'use client';
 
 import Link from 'next/link';
-import { useData } from '../context/DataContext';
-import { getCompletionColor, formatPercentage } from '../lib/utils';
+import { useProgress } from '../context/DataContext';
+import { formatPercentage } from '../lib/utils';
 
-export default function Home() {
-  const { getProgress, getCategoryProgress } = useData();
-  
-  const overallProgress = getProgress();
-  const categoryProgress = getCategoryProgress();
+export default function HomePage() {
+  const progress = useProgress();
 
   return (
-    <div className="p-6 h-full overflow-y-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-100 mb-2">
-          Organizational Maturity Assessment
-        </h1>
-        <p className="text-slate-400 text-lg">
-          Track your company&apos;s operational progress across all business functions
-        </p>
-      </div>
-
-      {/* Overall Progress Card */}
-      <div className="bg-slate-800 rounded-lg p-6 mb-8 border border-slate-700">
-        <h2 className="text-xl font-semibold text-slate-100 mb-4">Overall Progress</h2>
-        <div className="flex items-center gap-6">
-          <div className="flex-1">
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-400">Completed Tasks</span>
-              <span className="text-slate-200">
-                {overallProgress.completed} of {overallProgress.total} tasks
-              </span>
+    <div className="py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Hero section */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-6">
+            Organizational Maturity Assessment
+          </h1>
+          <p className="text-xl text-slate-600 mb-8 max-w-3xl mx-auto">
+            Visualize and track your organization&apos;s operational maturity through 
+            interactive dashboards, checklists, and network graphs. Transform complex 
+            business processes into clear, actionable insights.
+          </p>
+          
+          {/* Overall progress */}
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8 mb-12 max-w-2xl mx-auto">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-4">Overall Progress</h2>
+            <div className="flex items-center justify-center space-x-4 mb-4">
+              <div className="text-4xl font-bold text-slate-900">
+                {formatPercentage(progress.overallPercentage)}
+              </div>
+              <div className="text-slate-600">
+                <div>{progress.completedTasks} of {progress.totalTasks} tasks completed</div>
+              </div>
             </div>
-            <div className="w-full bg-slate-700 rounded-full h-4">
+            <div className="w-full h-4 bg-slate-200 rounded-full overflow-hidden">
               <div
-                className="h-4 rounded-full transition-all duration-500"
-                style={{
-                  width: `${overallProgress.percentage}%`,
-                  backgroundColor: getCompletionColor(overallProgress.percentage)
-                }}
+                className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-500"
+                style={{ width: `${progress.overallPercentage * 100}%` }}
               />
             </div>
           </div>
-          <div className="text-right">
-            <div 
-              className="text-4xl font-bold"
-              style={{ color: getCompletionColor(overallProgress.percentage) }}
-            >
-              {formatPercentage(overallProgress.percentage)}
-            </div>
-            <div className="text-slate-400 text-sm">Complete</div>
-          </div>
         </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <Link 
-          href="/graph"
-          className="bg-slate-800 hover:bg-slate-700 rounded-lg p-4 border border-slate-700 transition-colors group"
-        >
-          <div className="text-3xl mb-2">🌳</div>
-          <h3 className="text-lg font-semibold text-slate-100 mb-1">Graph View</h3>
-          <p className="text-slate-400 text-sm">
-            Visual network of your organizational structure
-          </p>
-        </Link>
-
-        <Link 
-          href="/checklist"
-          className="bg-slate-800 hover:bg-slate-700 rounded-lg p-4 border border-slate-700 transition-colors group"
-        >
-          <div className="text-3xl mb-2">✅</div>
-          <h3 className="text-lg font-semibold text-slate-100 mb-1">Checklist</h3>
-          <p className="text-slate-400 text-sm">
-            Manage and complete your business tasks
-          </p>
-        </Link>
-
-        <Link 
-          href="/dashboard"
-          className="bg-slate-800 hover:bg-slate-700 rounded-lg p-4 border border-slate-700 transition-colors group"
-        >
-          <div className="text-3xl mb-2">📊</div>
-          <h3 className="text-lg font-semibold text-slate-100 mb-1">Dashboard</h3>
-          <p className="text-slate-400 text-sm">
-            Detailed progress metrics and insights
-          </p>
-        </Link>
-      </div>
-
-      {/* Category Overview */}
-      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-        <h2 className="text-xl font-semibold text-slate-100 mb-4">Category Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {categoryProgress.map((category) => (
-            <div key={category.id} className="bg-slate-700 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium text-slate-100">{category.name}</h3>
-                <span 
-                  className="font-bold text-sm"
-                  style={{ color: getCompletionColor(category.progress.percentage) }}
-                >
-                  {formatPercentage(category.progress.percentage)}
-                </span>
+        {/* Feature cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <Link href="/checklist" className="group">
+            <div className="card hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center mb-4">
+                <svg className="w-8 h-8 text-slate-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <h3 className="text-lg font-semibold text-slate-900 group-hover:text-slate-700">Checklist View</h3>
               </div>
-              <div className="w-full bg-slate-600 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${category.progress.percentage}%`,
-                    backgroundColor: getCompletionColor(category.progress.percentage)
-                  }}
-                />
-              </div>
-              <div className="text-xs text-slate-400 mt-1">
-                {category.progress.completed} of {category.progress.total} tasks
-              </div>
+              <p className="text-slate-600">Task management with cascading completion logic and hierarchical organization.</p>
             </div>
-          ))}
+          </Link>
+          
+          <Link href="/graph" className="group">
+            <div className="card hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center mb-4">
+                <svg className="w-8 h-8 text-slate-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                </svg>
+                <h3 className="text-lg font-semibold text-slate-900 group-hover:text-slate-700">Graph View</h3>
+              </div>
+              <p className="text-slate-600">Interactive network visualization showing organizational structure and relationships.</p>
+            </div>
+          </Link>
+          
+          <Link href="/dashboard" className="group">
+            <div className="card hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-center mb-4">
+                <svg className="w-8 h-8 text-slate-700 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-slate-900 group-hover:text-slate-700">Dashboard View</h3>
+              </div>
+              <p className="text-slate-600">Progress metrics, analytics, and detailed category breakdowns.</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Category progress overview */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
+          <h2 className="text-2xl font-semibold text-slate-900 mb-6">Category Progress</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {progress.categoryProgress.map((category) => (
+              <div key={category.categoryId} className="flex items-center space-x-3">
+                <div
+                  className="w-4 h-4 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: category.color }}
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-medium text-slate-900 truncate">
+                    {category.categoryName}
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex-1 bg-slate-200 rounded-full h-2">
+                      <div
+                        className="h-2 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${category.progress.percentage * 100}%`,
+                          backgroundColor: category.color
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs text-slate-500 min-w-0">
+                      {formatPercentage(category.progress.percentage)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

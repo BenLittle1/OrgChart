@@ -1,62 +1,84 @@
-# Dependencies
-node_modules
+# Node.js dependencies
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# Production build output
-.next
+# Next.js build outputs
+.next/
+out/
+build/
+dist/
 
 # Environment files
-.env*.local
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Vercel
-.vercel
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Testing
-coverage
-
-# Misc
+# OS generated files
 .DS_Store
-*.tsbuildinfo
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Debug logs
-npm-debug.log*
-yarn-debug.log*
+# Git files
+.git/
+.gitignore
+
+# Docker files
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Testing and coverage
+coverage/
+.nyc_output
+.jest/
+
+# Logs
+logs/
+*.log
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
 
+# Temporary directories
+tmp/
+temp/
+
+# Documentation
+*.md
+docs/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+
+# TypeScript build info
+*.tsbuildinfo
+
 # Optional npm cache directory
 .npm
 
-# Optional REPL history
-.node_repl_history
+# Railway specific
+.railway/
 
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# Git
-.git
-.gitignore
-
-# Documentation
-README.md
-DEPLOY.md
-CLAUDE.md
-plan.txt
-
-# IDE
-.vscode
-.idea
-
-# Railway config (keep these out of Docker context)
-.railway
+# Miscellaneous
+.vercel/
+.netlify/

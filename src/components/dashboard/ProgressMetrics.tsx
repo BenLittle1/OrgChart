@@ -1,75 +1,111 @@
 'use client';
 
 import React from 'react';
-import { useData } from '../../context/DataContext';
-import { getCompletionColor, formatPercentage, getNodesAtLevel } from '../../lib/utils';
+import { OrganizationProgress } from '../../types';
+import { formatPercentage, getCompletionColor } from '../../lib/utils';
 
-export default function ProgressMetrics() {
-  const { data, getProgress } = useData();
-  
-  const overallProgress = getProgress();
-  const categories = getNodesAtLevel(data, 1); // Top-level categories
-  const subcategories = getNodesAtLevel(data, 2); // Second-level subcategories
-  const tasks = getNodesAtLevel(data, 3); // Individual tasks
-  
-  const completedTasks = tasks.filter(task => task.isComplete).length;
-  const completedCategories = categories.filter(cat => cat.isComplete).length;
-  const completedSubcategories = subcategories.filter(sub => sub.isComplete).length;
+interface ProgressMetricsProps {
+  progress: OrganizationProgress;
+}
 
-  const metrics = [
-    {
-      title: 'Overall Progress',
-      value: formatPercentage(overallProgress.percentage),
-      subtitle: `${overallProgress.completed} of ${overallProgress.total} tasks completed`,
-      color: getCompletionColor(overallProgress.percentage),
-      icon: '📊'
-    },
-    {
-      title: 'Categories Completed',
-      value: `${completedCategories}/${categories.length}`,
-      subtitle: `${Math.round((completedCategories / categories.length) * 100)}% of main business areas`,
-      color: getCompletionColor((completedCategories / categories.length) * 100),
-      icon: '📂'
-    },
-    {
-      title: 'Subcategories Completed', 
-      value: `${completedSubcategories}/${subcategories.length}`,
-      subtitle: `${Math.round((completedSubcategories / subcategories.length) * 100)}% of process areas`,
-      color: getCompletionColor((completedSubcategories / subcategories.length) * 100),
-      icon: '📋'
-    },
-    {
-      title: 'Tasks Completed',
-      value: `${completedTasks}/${tasks.length}`,
-      subtitle: `${Math.round((completedTasks / tasks.length) * 100)}% of individual tasks`,
-      color: getCompletionColor((completedTasks / tasks.length) * 100),
-      icon: '✅'
-    }
-  ];
+export function ProgressMetrics({ progress }: ProgressMetricsProps) {
+  const completionPercentage = progress.overallPercentage;
+  const remainingTasks = progress.totalTasks - progress.completedTasks;
+  
+  // Calculate category statistics
+  const categoryStats = {
+    completed: progress.categoryProgress.filter(cat => cat.progress.percentage === 1).length,
+    inProgress: progress.categoryProgress.filter(cat => cat.progress.percentage > 0 && cat.progress.percentage < 1).length,
+    notStarted: progress.categoryProgress.filter(cat => cat.progress.percentage === 0).length,
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {metrics.map((metric, index) => (
-        <div key={index} className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-2xl">{metric.icon}</span>
-            <h3 className="text-sm font-semibold text-slate-300">{metric.title}</h3>
-          </div>
-          
-          <div className="mb-2">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Overall Completion */}
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
             <div 
-              className="text-2xl font-bold"
-              style={{ color: metric.color }}
+              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
+              style={{ backgroundColor: getCompletionColor(completionPercentage) }}
             >
-              {metric.value}
+              {Math.round(completionPercentage * 100)}%
             </div>
           </div>
-          
-          <p className="text-xs text-slate-400 leading-relaxed">
-            {metric.subtitle}
-          </p>
+          <div className="ml-4">
+            <p className="text-sm font-medium text-slate-600">Overall Progress</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {formatPercentage(completionPercentage)}
+            </p>
+            <p className="text-xs text-slate-500">
+              {progress.completedTasks} of {progress.totalTasks} tasks
+            </p>
+          </div>
         </div>
-      ))}
+      </div>
+
+      {/* Completed Tasks */}
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="ml-4">
+            <p className="text-sm font-medium text-slate-600">Completed</p>
+            <p className="text-2xl font-bold text-slate-900">{progress.completedTasks}</p>
+            <p className="text-xs text-slate-500">
+              {formatPercentage(progress.completedTasks / progress.totalTasks)} of total
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Remaining Tasks */}
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div className="ml-4">
+            <p className="text-sm font-medium text-slate-600">Remaining</p>
+            <p className="text-2xl font-bold text-slate-900">{remainingTasks}</p>
+            <p className="text-xs text-slate-500">
+              {formatPercentage(remainingTasks / progress.totalTasks)} of total
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Categories Status */}
+      <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+          </div>
+          <div className="ml-4">
+            <p className="text-sm font-medium text-slate-600">Categories</p>
+            <p className="text-2xl font-bold text-slate-900">{progress.categoryProgress.length}</p>
+            <div className="text-xs text-slate-500">
+              <span className="text-green-600">{categoryStats.completed} complete</span>
+              {categoryStats.inProgress > 0 && (
+                <span className="ml-2 text-orange-600">{categoryStats.inProgress} in progress</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

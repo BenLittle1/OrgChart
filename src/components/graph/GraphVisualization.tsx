@@ -1,261 +1,375 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as d3 from 'd3';
-import { useData } from '../../context/DataContext';
+import { GraphData, GraphNode, GraphLink } from '../../types';
 import { convertToGraphData, getCompletionColor } from '../../lib/utils';
-import { GraphNode, GraphLink } from '../../types';
+import { useOrgData } from '../../context/DataContext';
 
-export default function GraphVisualization() {
+interface D3Node extends GraphNode, d3.SimulationNodeDatum {
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
+  fx?: number | null;
+  fy?: number | null;
+}
+
+interface D3Link extends d3.SimulationLinkDatum<D3Node> {
+  source: string | D3Node;
+  target: string | D3Node;
+  strength?: number;
+}
+
+interface GraphVisualizationProps {
+  width?: number;
+  height?: number;
+  onNodeClick?: (node: GraphNode) => void;
+}
+
+export default function GraphVisualization({ 
+  width = 800, 
+  height = 600, 
+  onNodeClick 
+}: GraphVisualizationProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { data } = useData();
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
+  const [dimensions, setDimensions] = useState({ width, height });
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  
+  const orgData = useOrgData();
 
-  // Create zoom behavior outside useEffect so it can be accessed by handlers
-  const zoom = useRef(d3.zoom<SVGSVGElement, unknown>()
-    .scaleExtent([0.1, 4])
-  );
-
+  // Update dimensions based on container size
   useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({
+          width: rect.width || 800,
+          height: rect.height || 600,
+        });
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  const createVisualization = useCallback(() => {
     if (!svgRef.current) return;
 
     const svg = d3.select(svgRef.current);
-    svg.selectAll("*").remove();
+    const { width: w, height: h } = dimensions;
 
-    const containerRect = svgRef.current.getBoundingClientRect();
-    const width = containerRect.width || 800; // Fallback width
-    const height = containerRect.height || 600; // Fallback height
+    // Clear previous content
+    svg.selectAll('*').remove();
 
-    // Convert organizational data to graph format
-    const graphData = convertToGraphData(data);
-    const { nodes, links } = graphData;
+    // Convert org data to graph data
+    const graphData: GraphData = convertToGraphData(orgData);
+    const nodes: D3Node[] = graphData.nodes.map(d => ({ ...d }));
+    const links: D3Link[] = graphData.links.map(d => ({
+      source: d.source,
+      target: d.target,
+      strength: d.strength,
+    }));
 
-    // Main container group
-    const container = svg.append('g');
+    // Create zoom behavior
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 4])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      });
 
-    // Configure zoom behavior
-    zoom.current.on('zoom', (event) => {
-      container.attr('transform', event.transform);
-    });
+    svg.call(zoom);
 
-    svg.call(zoom.current);
+    // Create main group for zoom/pan
+    const g = svg.append('g');
 
     // Create force simulation
-    const simulation = d3.forceSimulation<GraphNode>(nodes)
-      .force('link', d3.forceLink<GraphNode, GraphLink>(links).id((d) => d.id).distance(80))
-      .force('charge', d3.forceManyBody().strength(-300))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collision', d3.forceCollide().radius((d) => Math.sqrt((d as GraphNode).weight) * 8 + 5));
+    const simulation = d3.forceSimulation<D3Node>(nodes)
+      .force('link', d3.forceLink<D3Node, D3Link>(links)
+        .id((d: any) => d.id)
+        .distance((d: any) => {
+          const source = d.source as D3Node;
+          const target = d.target as D3Node;
+          // Increased distances to accommodate larger nodes
+          return 80 + (source.level + target.level) * 20;
+        })
+        .strength(0.8)
+      )
+      .force('charge', d3.forceManyBody()
+        .strength((d: any) => {
+          const node = d as D3Node;
+          // Increased charge force to accommodate larger nodes and distances
+          const baseStrength = -400;
+          const levelMultiplier = Math.max(1, 3 - node.level);
+          const weightMultiplier = Math.sqrt(node.weight);
+          return baseStrength * levelMultiplier * weightMultiplier;
+        })
+      )
+      .force('center', d3.forceCenter(w / 2, h / 2))
+      .force('collision', d3.forceCollide()
+        .radius((d: any) => {
+          const node = d as D3Node;
+          return Math.max(15, Math.sqrt(node.weight) * 6 + 4);
+        })
+        .strength(0.8)
+      )
+      .alphaDecay(0.02)
+      .velocityDecay(0.4);
+
+    simulationRef.current = simulation;
 
     // Create links
-    const link = container.append('g')
-      .selectAll<SVGLineElement, GraphLink>('line')
+    const link = g.append('g')
+      .attr('stroke', '#999')
+      .attr('stroke-opacity', 0.6)
+      .selectAll('line')
       .data(links)
       .join('line')
-      .attr('stroke', '#475569')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-opacity', 0.6);
+      .attr('stroke-width', (d: any) => {
+        const source = d.source as D3Node;
+        const target = d.target as D3Node;
+        return Math.max(1, 3 - Math.max(source.level, target.level));
+      });
 
     // Create nodes
-    const node = container.append('g')
-      .selectAll<SVGCircleElement, GraphNode>('circle')
+    const node = g.append('g')
+      .selectAll('g')
       .data(nodes)
-      .join('circle')
-      .attr('r', (d) => Math.sqrt(d.weight) * 8)
-      .attr('fill', (d) => getCompletionColor(d.completionPercentage))
-      .attr('stroke', '#1e293b')
-      .attr('stroke-width', 2)
-      .style('cursor', 'pointer')
-      .call(d3.drag<SVGCircleElement, GraphNode>()
-        .on('start', (event, d) => {
-          if (!event.active) simulation.alphaTarget(0.3).restart();
-          d.fx = d.x;
-          d.fy = d.y;
-        })
-        .on('drag', (event, d) => {
-          d.fx = event.x;
-          d.fy = event.y;
-        })
-        .on('end', (event, d) => {
-          if (!event.active) simulation.alphaTarget(0);
-          d.fx = null;
-          d.fy = null;
-        })
-      );
+      .join('g')
+      .attr('cursor', 'pointer');
 
-    // Create labels
-    const label = container.append('g')
-      .selectAll<SVGTextElement, GraphNode>('text')
-      .data(nodes)
-      .join('text')
-      .text((d) => d.name)
-      .attr('font-size', (d) => Math.max(10, Math.sqrt(d.weight) * 3))
-      .attr('font-family', 'system-ui, sans-serif')
-      .attr('fill', '#f8fafc')
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'middle')
-      .style('pointer-events', 'none')
-      .style('user-select', 'none');
+    // Node circles - increased size multiplier for better visual hierarchy
+    node.append('circle')
+      .attr('r', d => Math.max(12, Math.sqrt(d.weight) * 6))
+      .attr('fill', d => getCompletionColor(d.completion))
+      .attr('stroke', d => selectedNode === d.id ? '#1e293b' : '#fff')
+      .attr('stroke-width', d => selectedNode === d.id ? 3 : 2)
+      .attr('opacity', 0.9);
 
-    // Node interaction
+    // Node labels - show full text with word wrapping for better readability
+    node.each(function(d) {
+      const nodeGroup = d3.select(this);
+      const radius = Math.max(12, Math.sqrt(d.weight) * 6);
+      const fontSize = Math.max(11, 16 - d.level * 2) * Math.min(1.5, Math.sqrt(d.weight) / 3);
+      
+      // Split long text into multiple lines
+      const words = d.name.split(/\s+/);
+      const maxCharsPerLine = Math.max(8, Math.floor(radius / 3));
+      const lines: string[] = [];
+      let currentLine = '';
+      
+      words.forEach(word => {
+        if ((currentLine + ' ' + word).length <= maxCharsPerLine) {
+          currentLine = currentLine ? currentLine + ' ' + word : word;
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      });
+      if (currentLine) lines.push(currentLine);
+      
+      // Limit to maximum 3 lines to prevent excessive height
+      const displayLines = lines.slice(0, 3);
+      if (lines.length > 3) {
+        displayLines[2] = displayLines[2].substring(0, maxCharsPerLine - 3) + '...';
+      }
+      
+      // Create text elements for each line
+      displayLines.forEach((line, i) => {
+        nodeGroup.append('text')
+          .text(line)
+          .attr('font-size', `${fontSize}px`)
+          .attr('font-weight', d.level <= 1 ? 'bold' : 'normal')
+          .attr('text-anchor', 'middle')
+          .attr('dy', radius + 18 + (i * fontSize * 1.1)) // Line spacing
+          .attr('fill', '#1f2937')
+          .attr('stroke', '#ffffff')
+          .attr('stroke-width', '0.5')
+          .attr('stroke-opacity', '0.8')
+          .attr('pointer-events', 'none')
+          .style('text-shadow', '1px 1px 2px rgba(255,255,255,0.8)');
+      });
+    });
+
+    // Node interactions
     node
       .on('click', (event, d) => {
         event.stopPropagation();
-        setSelectedNode(d);
+        setSelectedNode(d.id === selectedNode ? null : d.id);
+        if (onNodeClick) {
+          onNodeClick(d);
+        }
       })
-      .on('mouseover', function() {
-        d3.select(this)
-          .attr('stroke-width', 3)
-          .attr('stroke', '#60a5fa');
+      .on('mouseover', function(event, d) {
+        // Highlight connected nodes
+        d3.select(this).select('circle')
+          .transition()
+          .duration(200)
+          .attr('r', Math.max(15, Math.sqrt(d.weight) * 6 + 3))
+          .attr('opacity', 1);
+
+        // Show tooltip
+        const tooltip = d3.select('body').append('div')
+          .attr('id', 'graph-tooltip')
+          .style('position', 'absolute')
+          .style('background', 'rgba(0, 0, 0, 0.8)')
+          .style('color', 'white')
+          .style('padding', '8px 12px')
+          .style('border-radius', '6px')
+          .style('font-size', '12px')
+          .style('pointer-events', 'none')
+          .style('z-index', '1000')
+          .style('opacity', 0);
+
+        tooltip.transition()
+          .duration(200)
+          .style('opacity', 1);
+
+        tooltip.html(`
+          <div><strong>${d.name}</strong></div>
+          <div>Level: ${d.level}</div>
+          <div>Progress: ${Math.round(d.completion * 100)}%</div>
+          <div>Weight: ${d.weight}</div>
+          <div>Type: ${d.isLeaf ? 'Task' : 'Category'}</div>
+        `)
+        .style('left', (event.pageX + 10) + 'px')
+        .style('top', (event.pageY - 10) + 'px');
       })
-      .on('mouseout', function() {
-        d3.select(this)
-          .attr('stroke-width', 2)
-          .attr('stroke', '#1e293b');
+      .on('mousemove', function(event) {
+        d3.select('#graph-tooltip')
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 10) + 'px');
+      })
+      .on('mouseout', function(event, d) {
+        d3.select(this).select('circle')
+          .transition()
+          .duration(200)
+          .attr('r', Math.max(12, Math.sqrt(d.weight) * 6))
+          .attr('opacity', 0.9);
+
+        d3.select('#graph-tooltip').remove();
       });
+
+    // Drag behavior
+    const drag = d3.drag<any, D3Node>()
+      .on('start', (event, d) => {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on('drag', (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on('end', (event, d) => {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      });
+
+    node.call(drag as any);
 
     // Update positions on simulation tick
     simulation.on('tick', () => {
       link
-        .attr('x1', (d) => (d.source as GraphNode).x!)
-        .attr('y1', (d) => (d.source as GraphNode).y!)
-        .attr('x2', (d) => (d.target as GraphNode).x!)
-        .attr('y2', (d) => (d.target as GraphNode).y!);
+        .attr('x1', (d: any) => (d.source as D3Node).x!)
+        .attr('y1', (d: any) => (d.source as D3Node).y!)
+        .attr('x2', (d: any) => (d.target as D3Node).x!)
+        .attr('y2', (d: any) => (d.target as D3Node).y!);
 
       node
-        .attr('cx', (d) => d.x!)
-        .attr('cy', (d) => d.y!);
-
-      label
-        .attr('x', (d) => d.x!)
-        .attr('y', (d) => d.y!);
+        .attr('transform', (d: any) => `translate(${d.x},${d.y})`);
     });
 
-    // Cleanup
+    // Click background to deselect
+    svg.on('click', () => {
+      setSelectedNode(null);
+    });
+
+  }, [orgData, dimensions, selectedNode, onNodeClick]);
+
+  // Create visualization when component mounts or data changes
+  useEffect(() => {
+    createVisualization();
+    
+    // Cleanup on unmount
     return () => {
-      simulation.stop();
+      if (simulationRef.current) {
+        simulationRef.current.stop();
+      }
+      d3.select('#graph-tooltip').remove();
     };
+  }, [createVisualization]);
 
-  }, [data]);
+  // Update node selection styling
+  useEffect(() => {
+    if (!svgRef.current) return;
 
-  const handleZoomIn = () => {
     const svg = d3.select(svgRef.current);
-    const currentTransform = d3.zoomTransform(svgRef.current!);
-    const newTransform = currentTransform.scale(1.5);
-    svg.transition().duration(300).call(
-      zoom.current.transform as never,
-      newTransform
-    );
-  };
-
-  const handleZoomOut = () => {
-    const svg = d3.select(svgRef.current);
-    const currentTransform = d3.zoomTransform(svgRef.current!);
-    const newTransform = currentTransform.scale(0.67);
-    svg.transition().duration(300).call(
-      zoom.current.transform as never,
-      newTransform
-    );
-  };
-
-  const handleResetZoom = () => {
-    const svg = d3.select(svgRef.current);
-    svg.transition().duration(500).call(
-      zoom.current.transform as never,
-      d3.zoomIdentity
-    );
-  };
+    svg.selectAll('circle')
+      .attr('stroke', (d: any) => selectedNode === d.id ? '#1e293b' : '#fff')
+      .attr('stroke-width', (d: any) => selectedNode === d.id ? 3 : 2);
+  }, [selectedNode]);
 
   return (
-    <div className="relative h-full w-full">
-      {/* Controls */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-        <button
-          onClick={handleZoomIn}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-md border border-slate-600 transition-colors"
-          title="Zoom In"
-        >
-          ➕
-        </button>
-        <button
-          onClick={handleZoomOut}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-md border border-slate-600 transition-colors"
-          title="Zoom Out"
-        >
-          ➖
-        </button>
-        <button
-          onClick={handleResetZoom}
-          className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-md border border-slate-600 transition-colors text-xs"
-          title="Reset Zoom"
-        >
-          🎯
-        </button>
-      </div>
-
-      {/* Node Details Panel */}
-      {selectedNode && (
-        <div className="absolute top-4 left-4 z-10 bg-slate-800 border border-slate-600 rounded-lg p-4 max-w-xs">
-          <button
-            onClick={() => setSelectedNode(null)}
-            className="absolute top-2 right-2 text-slate-400 hover:text-slate-200 text-sm"
-          >
-            ✕
-          </button>
-          <h3 className="font-semibold text-slate-100 mb-2">{selectedNode.name}</h3>
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Status:</span>
-              <span 
-                className="font-medium"
-                style={{ color: getCompletionColor(selectedNode.completionPercentage) }}
-              >
-                {selectedNode.completionPercentage}% Complete
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Weight:</span>
-              <span className="text-slate-200">{selectedNode.weight}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Level:</span>
-              <span className="text-slate-200">{selectedNode.level}</span>
-            </div>
-            {selectedNode.children.length > 0 && (
-              <div className="flex justify-between">
-                <span className="text-slate-400">Children:</span>
-                <span className="text-slate-200">{selectedNode.children.length}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 z-10 bg-slate-800 border border-slate-600 rounded-lg p-3">
-        <h4 className="font-semibold text-slate-100 mb-2 text-sm">Legend</h4>
-        <div className="space-y-1 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getCompletionColor(0) }}></div>
-            <span className="text-slate-300">Not Started (0%)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getCompletionColor(50) }}></div>
-            <span className="text-slate-300">In Progress (50%)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getCompletionColor(100) }}></div>
-            <span className="text-slate-300">Complete (100%)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* SVG Canvas */}
+    <div 
+      ref={containerRef}
+      className="w-full h-full min-h-[600px] bg-white rounded-lg border border-slate-200 overflow-hidden"
+    >
       <svg
         ref={svgRef}
-        className="w-full h-full bg-slate-900"
-        style={{ minHeight: '600px' }}
+        width={dimensions.width}
+        height={dimensions.height}
+        className="w-full h-full"
+        style={{ background: 'radial-gradient(circle, #f8fafc 0%, #f1f5f9 100%)' }}
       />
+      
+      {/* Legend */}
+      <div className="absolute top-4 left-4 bg-white bg-opacity-95 rounded-lg p-4 shadow-sm border border-slate-200">
+        <h4 className="text-sm font-semibold text-slate-900 mb-3">Legend</h4>
+        
+        {/* Progress Colors */}
+        <div className="space-y-2 text-xs mb-3">
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <span>0% Complete</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <span>50% Complete</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span>100% Complete</span>
+          </div>
+        </div>
+        
+        {/* Node Size */}
+        <div className="pt-2 border-t border-slate-200 mb-3">
+          <div className="text-xs font-medium text-slate-700 mb-2">Node Size</div>
+          <div className="flex items-center space-x-3 text-xs">
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+              <span>Tasks</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-4 h-4 rounded-full bg-slate-400"></div>
+              <span>Categories</span>
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 mt-1">
+            Larger = More subtasks
+          </div>
+        </div>
+        
+        <div className="pt-2 border-t border-slate-200 text-xs text-slate-600">
+          Click to select • Drag to move • Scroll to zoom
+        </div>
+      </div>
     </div>
   );
 }

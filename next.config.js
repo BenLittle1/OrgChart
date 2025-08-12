@@ -1,22 +1,35 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable static exports for better performance
   output: 'standalone',
-  
-  // Image optimization
-  images: {
-    unoptimized: true,
+  experimental: {
+    optimizePackageImports: ['d3'],
   },
-  
-  // Disable x-powered-by header for security
-  poweredByHeader: false,
-  
-  // Enable compression
-  compress: true,
-  
-  // Environment variables
-  env: {
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+  },
+  headers: async () => {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
   },
 };
 

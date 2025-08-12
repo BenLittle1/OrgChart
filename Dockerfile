@@ -1,66 +1,73 @@
-# Simplified Docker build for Railway deployment
+# OrgGraph Production Dockerfile
+# Multi-stage build optimized for Railway deployment
+
+# Base stage with Node.js 18 Alpine
 FROM node:18-alpine AS base
 
 # Set working directory
 WORKDIR /app
 
-# Set environment variables for optimization
+# Install system dependencies and security updates
+RUN apk add --no-cache libc6-compat && \
+    apk upgrade
+
+# Environment configuration
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--max-old-space-size=1024"
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NPM_CONFIG_FUND=false
-ENV NPM_CONFIG_AUDIT=false
 
-# Install system dependencies
-RUN apk add --no-cache libc6-compat
+# Dependencies stage
+FROM base AS deps
 
-# Copy all files first
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies with optimizations
+RUN npm ci --omit=dev --ignore-scripts && \
+    npm cache clean --force
+
+# Builder stage
+FROM base AS builder
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
 COPY . .
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci --ignore-scripts --no-fund --no-audit
-
-# Debug: List directory structure
-RUN echo "=== Directory structure ===" && \
-    ls -la && \
-    echo "=== Source directory ===" && \
-    ls -la src/ && \
-    echo "=== tsconfig.json content ===" && \
-    cat tsconfig.json
+# Install dev dependencies for build
+RUN npm ci --include=dev --ignore-scripts
 
 # Build the application
-RUN npm run build
+RUN npm run build && \
+    npm prune --omit=dev && \
+    npm cache clean --force
 
-# Production stage
-FROM node:18-alpine AS runner
-WORKDIR /app
+# Production runner stage
+FROM base AS runner
 
-# Set production environment
-ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=512"
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Install system dependencies
-RUN apk add --no-cache libc6-compat
-
-# Create non-root user
+# Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy built application
-COPY --from=base /app/public ./public
-COPY --from=base --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=base --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Create and set ownership of necessary directories
+RUN mkdir -p /app/.next/cache && \
+    chown -R nextjs:nodejs /app/.next
 
 # Switch to non-root user
 USER nextjs
 
-# Expose port
+# Expose port 3000
 EXPOSE 3000
 
-# Set port environment variable
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node --version || exit 1
 
 # Start the application
 CMD ["node", "server.js"]
