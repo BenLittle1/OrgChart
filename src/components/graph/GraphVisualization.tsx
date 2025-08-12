@@ -37,6 +37,7 @@ export default function GraphVisualization({
   const simulationRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
   const [dimensions, setDimensions] = useState({ width, height });
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const orgData = useOrgData();
 
@@ -55,7 +56,32 @@ export default function GraphVisualization({
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
+  }, [isFullscreen]); // Re-run when fullscreen state changes
+
+  // Handle fullscreen state synchronization
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // Fullscreen toggle functions
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (isFullscreen) {
+        await document.exitFullscreen();
+      } else {
+        await containerRef.current.requestFullscreen();
+      }
+    } catch (error) {
+      console.error('Error toggling fullscreen:', error);
+    }
+  };
 
   const createVisualization = useCallback(() => {
     if (!svgRef.current) return;
@@ -382,6 +408,36 @@ export default function GraphVisualization({
           Click to select • Drag to move • Scroll to zoom
         </div>
       </div>
+      
+      {/* Fullscreen Button */}
+      <button
+        onClick={toggleFullscreen}
+        className="absolute bottom-4 right-4 btn-secondary p-2 shadow-lg hover:shadow-xl transition-shadow duration-200"
+        title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+        aria-label={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+      >
+        {isFullscreen ? (
+          // Compress/Exit Fullscreen Icon
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M9 9V4.5M9 9H4.5M9 9L3.5 3.5M15 9V4.5M15 9h4.5M15 9l5.5-5.5M9 15v4.5M9 15H4.5M9 15l-5.5 5.5M15 15v4.5M15 15h4.5M15 15l5.5 5.5" 
+            />
+          </svg>
+        ) : (
+          // Expand/Enter Fullscreen Icon
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M4 8V4m0 0h4M4 4l5.5 5.5M20 8V4m0 0h-4m4 0l-5.5 5.5M4 16v4m0 0h4m-4 0l5.5-5.5M20 16v4m0 0h-4m4 0l-5.5-5.5" 
+            />
+          </svg>
+        )}
+      </button>
     </div>
   );
 }
