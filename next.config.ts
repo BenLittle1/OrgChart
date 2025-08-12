@@ -19,15 +19,6 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },
-  
-  // Webpack configuration for D3.js optimization
-  webpack: (config) => {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-    };
-    return config;
-  },
 };
 
 export default nextConfig;

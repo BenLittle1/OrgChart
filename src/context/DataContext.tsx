@@ -13,24 +13,29 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<OrgNode>(initialData);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load data from localStorage on initial render
   useEffect(() => {
-    const savedData = localStorage.getItem('orggraph-data');
-    if (savedData) {
-      try {
+    try {
+      const savedData = localStorage.getItem('orggraph-data');
+      if (savedData) {
         const parsed = JSON.parse(savedData);
         setData(parsed);
-      } catch (error) {
-        console.error('Failed to parse saved data:', error);
       }
+    } catch (error) {
+      console.error('Failed to parse saved data:', error);
+    } finally {
+      setIsLoaded(true);
     }
   }, []);
 
-  // Save data to localStorage whenever it changes
+  // Save data to localStorage whenever it changes (but only after initial load)
   useEffect(() => {
-    localStorage.setItem('orggraph-data', JSON.stringify(data));
-  }, [data]);
+    if (isLoaded) {
+      localStorage.setItem('orggraph-data', JSON.stringify(data));
+    }
+  }, [data, isLoaded]);
 
   const updateNode = useCallback((nodeId: string, isComplete: boolean) => {
     setData(currentData => updateNodeCompletion(currentData, nodeId, isComplete));

@@ -23,8 +23,8 @@ export default function GraphVisualization() {
     svg.selectAll("*").remove();
 
     const containerRect = svgRef.current.getBoundingClientRect();
-    const width = containerRect.width;
-    const height = containerRect.height;
+    const width = containerRect.width || 800; // Fallback width
+    const height = containerRect.height || 600; // Fallback height
 
     // Convert organizational data to graph format
     const graphData = convertToGraphData(data);
