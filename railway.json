@@ -1,11 +1,10 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "npm ci --omit=dev --ignore-scripts && npm run build"
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "npm start",
     "healthcheckPath": "/",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
@@ -15,10 +14,8 @@
     "production": {
       "variables": {
         "NODE_ENV": "production",
-        "NEXT_PUBLIC_APP_URL": "${{RAILWAY_PUBLIC_DOMAIN}}",
-        "NODE_OPTIONS": "--max-old-space-size=2048",
-        "NPM_CONFIG_FUND": "false",
-        "NPM_CONFIG_AUDIT": "false"
+        "NEXT_PUBLIC_APP_URL": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+        "NEXT_TELEMETRY_DISABLED": "1"
       }
     }
   }

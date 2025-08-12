@@ -36,7 +36,7 @@ npm run type-check
 
 ### Data Architecture
 The entire application is driven by a single hierarchical data object (`OrgNode`) that represents:
-- **7 main business categories** (Corporate & Governance, Finance & Accounting, Human Resources, etc.)
+- **7 main business categories** (Corporate & Governance, Finance & Accounting, etc.)
 - **20+ subcategories** (Business Formation, Financial Setup, Recruitment & Hiring, etc.)  
 - **50+ individual tasks** (leaf nodes with specific actionable items)
 
@@ -164,6 +164,16 @@ The organizational data is stored in `src/lib/data.ts` as a comprehensive hierar
 - Data persistence occurs only after initial hydration completes
 
 ### Build and Deployment
-- TypeScript strict mode enabled - all type errors must be resolved
-- Railway deployment uses standalone output for optimal performance
-- Health checks configured on root endpoint with 300s timeout
+- **TypeScript**: Strict mode enabled - all type errors must be resolved before deployment
+- **Next.js compatibility**: Use next.config.js (not .ts) for Next.js 14 compatibility
+- **Tailwind configuration**: Use v3 syntax (@tailwind directives) in globals.css, not v4 @import
+- **Railway deployment**: Uses standalone output with nixpacks.toml for optimal performance
+- **Dependency management**: Prefer stable versions (React 18, Next.js 14) over bleeding-edge for production
+- **Security patches**: Keep dependencies updated for security vulnerabilities
+- **Build cache**: Add tsconfig.tsbuildinfo to .gitignore to prevent Docker layer conflicts
+
+### Railway-Specific Deployment Issues
+- **Exit code 240**: Usually indicates memory constraints or dependency version conflicts
+- **Docker build failures**: Often caused by build cache files (tsconfig.tsbuildinfo) or unstable dependency versions
+- **Resource optimization**: Use NODE_OPTIONS memory limits and build flags to work within Railway's resource constraints
+- **Configuration compatibility**: Ensure config files match framework versions (next.config.js for Next.js 14, Tailwind v3 syntax)
